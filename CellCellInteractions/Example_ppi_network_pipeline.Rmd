@@ -72,7 +72,15 @@ style_name <- "cellcell_style"
 # flag whether to compute iref complex interactions
 compute_iref_complexes <- FALSE
 
-source ("./R_code/CellCellInteractions_utility_functions.R")
+#install an R library that has functions which make it easier to communicate with cytoscape
+#use easy cyRest library to communicate with cytoscape.
+tryCatch(expr = { library(devtools)}, 
+         error = function(e) { install.packages("devtools")}, finally = library(devtools))
+tryCatch(expr = { library(EasycyRest)}, 
+         error = function(e) { install_github("BaderLab/EasycyRest/EasycyRest")}, finally = library(EasycyRest))
+
+
+#source ("./R_code/CellCellInteractions_utility_functions.R")
 
 ```
 
@@ -92,15 +100,15 @@ Ligands are defined as any gene annotated to the following GO terms:
  To modify or customize what is defined as a receptor or ligand add/delete any of the GO terms below.
 
 ```{r}
-#make sure you have biomart package installed - uncomment below if it is not installed
- #source("http://bioconductor.org/biocLite.R")
-#  biocLite("biomaRt")
 goterms_receptors <- c("GO:0043235","GO:0008305","GO:0072657","GO:0043113","GO:0004872")
 goterms_ligands <- c("GO:0005102")
 ```
 
 ```{r,, message=FALSE, warning=FALSE}
-  library("biomaRt")
+  
+tryCatch(expr = { library("biomaRt")}, 
+         error = function(e) { source("http://bioconductor.org/biocLite.R");biocLite("biomaRt")}, finally = library("biomaRt"))
+
   ensembl=useMart("ensembl",dataset="hsapiens_gene_ensembl")
 
   #filter for the set of goterms
@@ -253,6 +261,38 @@ Filter biogrid by the set of ligands and receptors.  For an interaction to be re
 Gene symbols are found in the alternate id column (column 3 and 4 in the biogrid mitab file)
 
 ```{r}
+
+# Filter mitab set of interactions by proteins of interest
+#
+# all_interactions - table of the interactions to filter
+# protein_Set - a vector of genes to limit the interaction set by
+# pattern - if the fields that we are searching in actualy contains multiple ids then extract the symbols of interest based on this pattern.
+# column_alias1 - the column name to find the alias of gene/protein1
+# column_alias2 - the column name to find the alias of gene/protein2
+
+filter_mitab_interactions_byproteinset <- function(all_interactions, protein_set,pattern, column_alias1, column_alias2){
+  
+  #pull out all the hgnc symbols from the interactions in interaction file
+  #extract the HGNC symbols from AliasA and AliasB
+  #AliasA is the 3rd column
+  temp1 <-strsplit(all_interactions[,column_alias1],pattern)
+  AliasA <- unlist(lapply(temp1, function(dat){unlist(strsplit(dat[2],"\\|"))[1]}))
+  AliasA<- unlist(lapply(AliasA,as.character))
+  
+  #AliasA is the 4th column
+  temp1 <-strsplit(all_interactions[,column_alias2],pattern)
+  AliasB <- unlist(lapply(temp1, function(dat){unlist(strsplit(dat[2],"\\|"))[1]}))
+  AliasB<- unlist(lapply(AliasB,as.character))
+  
+  #add AliasA and AliasB to the original iref matrix
+  all_interactions <- cbind(AliasA, AliasB, all_interactions)
+  
+  interaction_set <- all_interactions[which(AliasA %in% protein_set & AliasB %in% protein_set),]
+  
+  return(interaction_set)
+}
+
+
 biogrid_ligand_recep_inter <- filter_mitab_interactions_byproteinset(biogrid_mitab,proteins_of_interest,
                                                                      pattern="entrez gene/locuslink:",
                                                                     column_alias1=3,column_alias2=4)
@@ -320,9 +360,8 @@ download.file(
 )
 ```
 ```{r, include=FALSE}
-#unzip the new file
-#install.packages("R.utils")
-library("R.utils")
+tryCatch(expr = { library("R.utils")}, 
+         error = function(e) { install.packages("R.utils")}, finally = library("R.utils"))
 
 ```
 
@@ -428,6 +467,80 @@ translate mitab irefIndex complex records into pair-wise interactions. Complexes
 By default we don't compute this.
 ```{r}
 #this method converts the complexes into a matrix representation.
+#Iref has a different way or represening complex membership. Instead of representing them in matrix or spoke instead a fake entity called complexA 
+# is created and all genes/proteins that are a part of that complex interact with this fake entity.  This representation would translate in to 
+# zero interactions when comparing to our protein set of interest.
+# Therefore, translate all irefindex complex interactions into matrix representation.
+#
+# Given:
+# iref_mitab - irefindex expanded mitab representation (from 2013 release) - given that the expanded format is not as stable as compact mitab format
+#  if you wish to change to a later release of irefindex (we tried the 2015 release but found that it had significantly less interactions than
+#  the 2013 release) it is imporatant that you verify that the expanded mitab fields have not changed. 
+# protein_set - vector of genes/proteins to filter the compex interactions by.
+compute_complex_interactions_irefindex <- function(iref_mitab,protein_set){
+  
+  #add the aliases
+  #pull out all the hgnc symbols from the interactions in iref
+  #extract the HGNC symbols from AliasA and AliasB
+  temp1 <-strsplit(iref_mitab[,'aliasA'],'hgnc:')
+  AliasA <- unlist(lapply(temp1, function(dat){unlist(strsplit(dat[2],"\\|"))[1]}))
+  AliasA<- unlist(lapply(AliasA,as.character))
+  
+  temp1 <-strsplit(iref_mitab[,'aliasB'],'hgnc:')
+  AliasB <- unlist(lapply(temp1, function(dat){unlist(strsplit(dat[2],"\\|"))[1]}))
+  AliasB<- unlist(lapply(AliasB,as.character))
+  
+  #add AliasA and AliasB to the original iref matrix
+  iref_mitab <- cbind(AliasA, AliasB, iref_mitab)
+  
+  #compute edges from complexes
+  irefcomplexes  <- iref_mitab[which(iref_mitab['edgetype'] =="C"),]
+  
+  irefcomplexes <- data.frame(lapply(irefcomplexes, as.character), stringsAsFactors=FALSE)
+  
+  #some weirdness on windows systems.  uidA column is coming up as x.uidA 
+  #if there is a column name x.uidA then change it to uidA
+  if(length(which(colnames(irefcomplexes) == "X.uidA")) > 0){
+    colnames(irefcomplexes)[which(colnames(irefcomplexes) == "X.uidA")] <- "uidA"
+  }
+  
+  #go through all the unique complexes
+  unique_complexes <- unique(irefcomplexes[,'uidA']) 
+  
+  complex_Data_to_add <- c()
+  for(j in 1:length(unique_complexes)){
+    complex_rows <- which(irefcomplexes[,'uidA'] == unique_complexes[j])
+    subset <- irefcomplexes[complex_rows,];
+    
+    ids_in_complex <- unique(subset[,'AliasB'])
+    FoundInComplex <- which(ids_in_complex %in% protein_set)
+    if(length(FoundInComplex) > 1){
+      
+      for(k in 1:length(FoundInComplex)){
+        current_receptor_row <- subset[which(subset[,'AliasB'] == ids_in_complex[FoundInComplex[k]]),][1,]  
+        for(l in 1:length(FoundInComplex)){
+          if(k != l){
+            current_ligand_row <- subset[which(subset[,'AliasB'] == ids_in_complex[FoundInComplex[l]]),][1,]
+            #create new row with 56 columns
+            new_row <- vector(mode="character", length = 56)
+            #receptor is always A
+            new_row[c(1,3,5,7,9,14,21,23,25,27,30,37,41,43,45,47,50,53)] <- current_receptor_row[1,c(2,4,6,8,10,15,22,24,26,28,31,38,42,46,44,48,51,54)]
+            #ligand is always B
+            new_row[c(2,4,6,8,10,15,22,24,26,28,31,38,42,46,44,48,51,54)] <- current_ligand_row[1,c(2,4,6,8,10,15,22,24,26,28,31,38,42,46,44,48,51,54)]
+            
+            #rest is the same for both so doesn't matter.
+            new_row[c(11,12,13,16,17,18,19,20,29,32,33,34,35,36,39,40,49,52,55,56)] <- current_ligand_row[1,c(11,12,13,16,17,18,19,20,29,32,33,34,35,36,39,40,49,52,55,56)]
+            complex_Data_to_add <- rbind(complex_Data_to_add , unlist(new_row));
+          }        
+        }     
+      }
+    }
+  }
+  colnames(complex_Data_to_add) <- colnames(iref_mitab)
+  return(complex_Data_to_add)
+}
+
+
 if(compute_iref_complexes){
   iref_ligand_recep_complexes <- compute_complex_interactions_irefindex(
     iref_2013_nobiogrid,proteins_of_interest)
@@ -466,7 +579,9 @@ Iref consists of `r num_iref_inter_all` ligand-receptor interactions, `r num_ire
 ### How many interactions do they have in common
 
 ```{r}
-library(VennDiagram)
+tryCatch(expr = { library("VennDiagram")}, 
+         error = function(e) { install.packages("VennDiagram")}, finally = library("VennDiagram"))
+
 three_db_overlap = paste(".","3_db_RL_inter_overlap.png",sep="/")
 png(three_db_overlap)
 
@@ -609,9 +724,15 @@ YOu can use any expression between different cell types for this analysis.  To d
 ** Periodically the script doesn't successfully download the required files from GEO.  If this occurs just re-run this section.  It rarely fails on consecutive tries **
 
 ```{r, include=FALSE}
-library(Biobase)
-library(GEOquery)
-library(limma)
+tryCatch(expr = { library("Biobase")}, 
+         error = function(e) { source("http://bioconductor.org/biocLite.R");biocLite("Biobase")}, finally = library("Biobase"))
+tryCatch(expr = { library("GEOquery")}, 
+         error = function(e) { source("http://bioconductor.org/biocLite.R");biocLite("GEOquery")}, finally = library("GEOquery"))
+tryCatch(expr = { library("limma")}, 
+         error = function(e) { source("http://bioconductor.org/biocLite.R");biocLite("limma")}, finally = library("limma"))
+library("Biobase")
+library("GEOquery")
+library("limma")
 ```
 
 ```{r}
@@ -897,11 +1018,18 @@ JSON expects the data in a key = value format.  For every attribute we wish to i
 Create two different tables, one for the node and their attributes and one for the edges and their attributes.  
 
 ```{r}
-json_nodes <- convert_nodes_tojson(unique_nodes_withprottype_withcelltypes)
+#use easy cyRest library to communicate with cytoscape.
+tryCatch(expr = { library(devtools)}, 
+         error = function(e) { install.packages("devtools")}, finally = library(devtools))
+tryCatch(expr = { library(EasycyRest)}, 
+         error = function(e) { install_github("BaderLab/EasycyRest/EasycyRest")}, finally = library(EasycyRest))
 
-json_edges <- convert_edges_tojson(ligand_receptor_network[,c("AliasA","AliasB","key","method","pmids","interactionType",
+
+json_nodes <- nodeSet2JSON(unique_nodes_withprottype_withcelltypes,nodeID_column = "Alias") 
+
+json_edges <- edgeSet2JSON(ligand_receptor_network[,c("AliasA","AliasB","key","method","pmids","interactionType",
                                                              "sourcedb","interactionIdentifier","confidence")], 
-                                   interA = "AliasA", interB="AliasB",inter_type="method")
+                                   interA = "AliasA", interB="AliasB",inter_type="method") 
 ```
 
 ### Create JSON network
@@ -940,7 +1068,7 @@ In order to lay out the network specifically for the different cell types we fir
 
 ```{r}
 #get the nodes table
-nodes_info <- get_nodetable(base.url, network.suid)
+nodes_info <- getNodeTable(base.url, network.suid)
 
 #the table should have colnames : celltypes and protein_type
 if(length(which(colnames(nodes_info) == 'celltypes')) == 0 ){
@@ -969,7 +1097,7 @@ for(i in 1:length(celltype_names)){
         
         if(!is.null(nodes_to_select) & length(nodes_to_select) > 0){
             #select nodes
-            response <- cy_select_nodes(base.url, nodes = nodes_to_select,network.suid)
+            response <- cySelectNodes(base.url, nodes = nodes_to_select,network.suid)
         
             #apply layout on just the selected nodes. 
             layout.url <- paste(base.url,"commands/layout/attributes-layout", sep="/")
@@ -978,10 +1106,10 @@ for(i in 1:length(celltype_names)){
             response <- GET(url=layout.url, query =layout_params) 
             
             #move selected nodes so they don't overlap other groups
-            response <- cy_move_selected_nodes(base.url, network.suid,y_offset=750*i)
+            response <- cyMoveSelectedNodes(base.url, network.suid,y.offset=750*i, network.viewid = getNodeviewId(base.url, network.suid))
         
             #unselect all the nodes
-            response <- cy_unselect_allnodes(base.url, network.suid) 
+            response <- cyUnselectAllNodes(base.url, network.suid) 
         }
 }
 
@@ -1004,7 +1132,131 @@ The border of nodes are outlined in yellow if the gene/protein is significant(as
 
 The visual style is defined in the function create_cellinteraction_style found in CellCellInteractions_utility_function.R file.  To modify the visual style you can either do it manually in cytoscape after the network has been generated or you can modify the above mentioned function to better fit your needs. 
 
+Function to define the above style:
 ```{r}
+#Create visual style for cell cell interaction network
+create_cellinteraction_style <- function(style.name, celltypes) {
+  # Preepare Defaults
+  def.node.border.width <- list(
+    visualProperty = "NODE_BORDER_WIDTH",
+    value = 0
+  )
+  
+  def.node.transparency <- list(
+    visualProperty="NODE_TRANSPARENCY",
+    value=230
+  )
+  
+  def.edge.transparency <- list(
+    visualProperty="EDGE_TRANSPARENCY",
+    value=120
+  )
+  
+  def.edge.width <- list(
+    visualProperty="EDGE_WIDTH",
+    value=2
+  )
+  
+  def.network.background <- list(
+    visualProperty = "NETWORK_BACKGROUND_PAINT",
+    value = "white"
+  )
+  
+  defaults <- list(
+    def.node.border.width,
+    def.edge.width,
+    def.node.transparency,
+    def.edge.transparency,
+    def.network.background
+  )
+  
+  # Mappings
+  mappings = list()
+  
+  colors = c( "rgb(51,0,204)","rgb(0,255,51)", "rgb(204,0,255)","orange","pink","rgb(218,165,32)","rgb(135,206,250)")
+  
+  celltypes_colors <- c()
+  for(i in 1:length(celltypes)){
+    current <- list(key = celltypes[i], value = colors[i])
+    celltypes_colors = c(celltypes_colors, list(current)) 
+  }
+  
+  # Color mappings
+  node.fill.color = list(
+    mappingType="discrete",
+    mappingColumn="celltypes",
+    mappingColumnType="String",
+    visualProperty="NODE_FILL_COLOR",
+    map=celltypes_colors
+  )
+  
+  #color border orange for significant genes
+  border_colors <- c()
+  current <- list(key = "significant", value = "orange")
+  border_colors = c(border_colors, list(current)) 
+  
+  # border color
+  border.paint = list(
+    mappingType="discrete",
+    mappingColumn="significant",
+    mappingColumnType="String",
+    visualProperty="NODE_BORDER_PAINT",
+    map=border_colors
+  )
+  
+  #color border orange for significant genes
+  border_widths <- c()
+  current <- list(key = "significant", value = "10")
+  border_widths = c(border_widths, list(current)) 
+  
+  # border color
+  border.widths = list(
+    mappingType="discrete",
+    mappingColumn="significant",
+    mappingColumnType="String",
+    visualProperty="NODE_BORDER_WIDTH",
+    map=border_widths
+  )
+  
+  prot_shapes <- c()
+  current <- list(key = "Ligand", value =  "triangle")
+  prot_shapes = c(prot_shapes, list(current)) 
+  current <- list(key = "Receptor", value =  "diamond")
+  prot_shapes = c(prot_shapes, list(current)) 
+  current <- list(key = "Multiple_classifications", value =  "hexagon")
+  prot_shapes = c(prot_shapes, list(current))
+  
+  #node shape mappings
+  node.shape = list(
+    mappingType="discrete",
+    mappingColumn= "protein_type",
+    mappingColumnType="String",
+    visualProperty="NODE_SHAPE",
+    map=prot_shapes
+  )
+  
+  #name mapping
+  node.label = list(
+    mappingType="passthrough",
+    mappingColumn="name",
+    mappingColumnType="String",
+    visualProperty="NODE_LABEL"
+  )
+  
+  mappings = list(node.label, node.fill.color,node.shape,border.paint,border.widths)
+  
+  style <- list(title=style.name, defaults = defaults, mappings = mappings)
+  return(toJSON(style))
+  
+}
+```
+
+
+```{r}
+#fit the network to the current frame 
+fit.network = paste(base.url, "apply/fit",  toString(network.suid), sep="/")
+GET(fit.network)
+
 #create style
 style.cellcellinter <- create_cellinteraction_style(style_name, celltype_names)
 
