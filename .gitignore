@@ -2,5 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
-*.GSEAPreranked.*/*
-*GSEAPreranked*
+*.GSEAPreRanked.*/*
+*GSEAPreRanked*
