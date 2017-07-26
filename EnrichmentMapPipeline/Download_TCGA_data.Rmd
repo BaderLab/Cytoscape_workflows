@@ -84,10 +84,8 @@ write.table(microarrayPatients,"./data/Supplementary_Table11_Microarray_classdef
 
 
 ## Download and format TCGA OV RNASeq data
-
-
-
-
+Sometimes the server times out.  If you initially get an error try running this block over.  
+Also, if you have run the above code immediately before this section the tar file will have the same name but a different format.  Try deleting all tar files in the directory and re-run.
 ```{r}
   query <- GDCquery(project = "TCGA-OV", 
                    data.category = "Gene expression",

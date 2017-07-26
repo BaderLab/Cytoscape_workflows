@@ -101,7 +101,7 @@ rx = gregexpr("(?<=<a href=\")(.*.GOBP_AllPathways_no_GO_iea.*.)(.gmt)(?=\">)",
   contents, perl = TRUE)
 gmt_file = unlist(regmatches(contents, rx))
 
-dest_gmt_file <- paste(working_dir,gmt_file,sep="/")
+dest_gmt_file <- paste(working_dir,paste("Supplementary_Table3_",gmt_file,sep="") ,sep="/")
 
 download.file(
     paste(gmt_url,gmt_file,sep=""),

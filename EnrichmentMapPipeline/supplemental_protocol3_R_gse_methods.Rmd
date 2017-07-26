@@ -31,10 +31,16 @@ tryCatch(expr = { library("RCurl")},
          finally = library("RCurl"))
 
 # This protocol can use RNA-seq expression data or microarray expression data. Specify which you would like to use
-dataType_rnaseq <- FALSE
+dataType_rnaseq <- TRUE
 
 #The field in the class definition file that defines the classes of the data.
 data_classes <- "SUBTYPE"
+
+#string to name the analysis
+analysis_name <- "Mesen_vs_Immuno"
+
+#from supplmentary protocol 1
+expression_file <- "Supplementary_Table6_TCGA_OV_RNAseq_expression.txt"
 
 ```
 
@@ -89,7 +95,7 @@ names(genesets$genesets) <- genesets$geneset.names
 
 25. Specify the expression dataset to be used for the analysis. You can use the MinimalSet from Supplementary protocol 1A or the DGEList variable d from Supplementary protocol 1B. For our RNAseq dataset, each row of the expression set is annotated with gene symbol and EntrezGene ID separated by “|”. To match the gene set file we need to remove the EntrezGene IDs from the row names. We choose to use gene symbols to simplify interpretation of enriched pathways and associated genes.
 
-**(optional) Recreate the DGEList from supplementary protocol rnaseq (Steps 14 - 19 in Supplementary protocol rnaseq) or if you are within the same sesison you can use the d variable.**
+**(optional) Recreate the DGEList from supplementary protocol rnaseq (Steps 1 -5 in Supplementary protocol 1 rnaseq) or if you are within the same sesison you can use the d variable.**
 ```{r}
 if(dataType_rnaseq){
       tryCatch(expr = { library("edgeR")}, 
@@ -129,7 +135,7 @@ if(dataType_rnaseq){
 }
 ```
 
-Or alternately load data as a MinimalSet from microarray data (Steps 1 - 5 in Supplementary protocol microarray)
+Or alternately load data as a MinimalSet from microarray data (Steps 9 - 14 in Supplementary protocol 2 microarray)
 
 ```{r}
 if(!dataType_rnaseq){
@@ -223,7 +229,7 @@ rownames(genes) <- rownames(mroast_results)
 
 mroast_results_generic_em <- data.frame( rownames(mroast_results), mroast_descr, 
 	PValue=mroast_results[,"PValue"], FDR=mroast_results[,"FDR"], Phenotype, genes)
-write.table(mroast_results_generic_em, paste(working_dir,"mroast_results_generic_em.txt",sep="/"), 
+write.table(mroast_results_generic_em, paste(working_dir,mroast_results_file,sep="/"), 
 	col.name=TRUE, sep="\t", row.names=FALSE, quote=FALSE) 
 
 ```
@@ -262,7 +268,7 @@ rownames(camera_genes) <- rownames(camera_results)
 
 camera_results_generic_em <- data.frame(rownames(camera_results), camera_descr, 
 	PValue = camera_results[,"PValue"], FDR=camera_results[,"FDR"], Phenotype, genes )
-write.table(camera_results_generic_em, paste(working_dir,"camera_results_generic_em.txt",sep="/"), 
+write.table(camera_results_generic_em, paste(working_dir,camera_results_file,sep="/"), 
 	col.name=TRUE, sep="\t", row.names=FALSE, quote=FALSE)
 
 ```
@@ -280,13 +286,13 @@ tryCatch(expr = { library(EasycyRest)},
 
 #defined threshold for GSEA enrichments (need to be strings for cyrest call)
 pvalue_threshold <- "0.05"
-qvalue_threshold <- "0.005"
+qvalue_threshold <- "0.0001"
 
-similarity_threshold <- "0.375"
-similarity_metric = "COMBINED"
+similarity_threshold <- "0.25"
+similarity_metric = "JACCARD"
 
 
-current_rank_filename = paste(getwd(),working_dir,rnk_file,sep="/")
+
 generic_gmt_file <- paste(getwd(),gmt_file,sep="/")
 
 cur_model_name <- paste("camera",analysis_name,sep="_")
@@ -300,8 +306,7 @@ current_network_name <- paste(cur_model_name,pvalue_threshold,qvalue_threshold,s
 em_command = paste('enrichmentmap build analysisType="generic" gmtFile=',generic_gmt_file,
                    'pvalue=',pvalue_threshold, 'qvalue=',qvalue_threshold,
                    'similaritycutoff=',similarity_threshold,
-                   'coeffecients=',similarity_metric,'ranksDataset1=', 
-                   gsea_ranks_file,'enrichmentsDataset1=',results_filename,
+                   'coeffecients=',similarity_metric,'enrichmentsDataset1=',results_filename,
                    'expressionDataset1=',paste(getwd(),working_dir,expression_file,sep="/"),
                    sep=" ")
 
@@ -332,8 +337,7 @@ current_network_name <- paste(cur_model_name,pvalue_threshold,qvalue_threshold,s
 em_command = paste('enrichmentmap build analysisType="generic" gmtFile=',generic_gmt_file,
                    'pvalue=',pvalue_threshold, 'qvalue=',qvalue_threshold,
                    'similaritycutoff=',similarity_threshold,
-                   'coeffecients=',similarity_metric,'ranksDataset1=', 
-                   gsea_ranks_file,'enrichmentsDataset1=',results_filename,
+                   'coeffecients=',similarity_metric,'enrichmentsDataset1=',results_filename,
                    'expressionDataset1=',paste(getwd(),working_dir,expression_file,sep="/"),
                    sep=" ")
 
