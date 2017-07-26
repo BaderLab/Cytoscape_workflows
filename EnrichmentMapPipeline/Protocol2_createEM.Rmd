@@ -1,0 +1,265 @@
+---
+title: "Enrichment Map Analysis Pipeline"
+author: "Ruth Isserlin"
+date: "`r format(Sys.Date())`"
+    output:
+      html_document:
+        keep_md: true
+---
+
+#Materials
+##Equipment
+###Hardware requirements:
+
+ * A recent personal computer with Internet access and at least 8GB of RAM.
+ 
+###Software requirements:
+
+ * A contemporary web browser (e.g. Chrome, Firefox), for pathway enrichment analysis with g:Profiler (Protocol 1A).
+ * Java Standard Edition. Java is required to run GSEA and Cytoscape. It is available at http://java.oracle.com. Version 8 or higher is requiredrecommended, but Java 7 will function.
+ * GSEA desktop application for pathway enrichment analysis protocol 1B. Download the latest version of GSEA from http://www.broadinstitute.org/gsea/downloads.jsp. We recommend the javaGSEA desktop application. Free registration is required.
+ * Cytoscape desktop application is required for Enrichment Map visualization. The latest version of Cytoscape can be downloaded at http://www.cytoscape.org.
+ * The following Cytoscape apps are installed within Cytoscape. Go to Apps  App manager (i.e., open the Apps menu and select the item “App manager”). 
+   * Enrichment Map, version 3.0 or higher,
+   * Clustermaker2, version 0.9.5 or higher,
+   * WordCloud, version 3.1.0 or higher,
+   * AutoAnnotate, version 1.2.0 or higher
+
+
+Load in required libraries
+
+```{r, include=FALSE}
+#install required R and bioconductor packages
+tryCatch(expr = { library("RCurl")}, 
+         error = function(e) {  install.packages("RCurl")}, 
+         finally = library("RCurl"))
+
+#use library
+tryCatch(expr = { library("limma")}, 
+         error = function(e) { source("https://bioconductor.org/biocLite.R")
+           biocLite("limma")}, 
+         finally = library("limma"))
+tryCatch(expr = { library("Biobase")}, 
+         error = function(e) { source("https://bioconductor.org/biocLite.R")
+           biocLite("Biobase")}, 
+         finally = library("Biobase"))
+tryCatch(expr = { library("ggplot2")}, 
+         error = function(e) { install.packages("ggplot2")}, 
+         finally = library("ggplot2"))
+
+#For creating json and communicating with cytoscape
+tryCatch(expr = { library("httr")}, 
+         error = function(e) { install.packages("httr")}, 
+         finally = library("httr"))
+tryCatch(expr = { library("RJSONIO")}, 
+         error = function(e) { install.packages("RJSONIO")}, 
+         finally = library("RJSONIO"))
+
+```
+
+## Configurable Parameters
+In order to run GSEA automatically through the notebook you will need to download the gsea jar from [here](http://software.broadinstitute.org/gsea/downloads.jsp).  Specify the exact path to the gsea jar below in order to automatically compute enrichments using GSEA.
+
+```{r}
+#path to GSEA jar 
+# In order to run GSEA automatically you need to speciry the path to the gsea jar file.
+gsea_jar <- "./gsea-3.0.jar"
+
+#Gsea takes a long time to run.  If you have already run GSEA manually or previously there is no need to re-run GSEA.  Make sure the 
+# gsea results are in the current directory and the notebook will be able to find them and use them.
+run_gsea = TRUE
+
+#navigate to the directory where you put the downloaded protocol files.
+working_dir <- paste("./data",sep="/")
+
+# leave blank if you want the notebook to discover the gsea directory for itself
+#gsea_directory = paste(working_dir,"Mesen_vs_Immuno.GseaPreranked.1497635459262",sep="/") 
+gsea_directory = ""
+
+analysis_name <- "Mesen_vs_Immuno"
+rnk_file <- "Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk"
+expression_file <- "Supplementary_Table6_TCGA_OV_RNAseq_expression.txt"
+classes_file <- "Supplementary_Table9_TCGA_OV_RNAseq_classes.cls"
+
+```
+
+## Download the latest pathway definition file
+Only Human, Mouse and Rat gene set files are currently available on the baderlab downloads site.  If you are working with a species other than human (and it is either rat or mouse) change the gmt_url below to correct species. Check [here](http://download.baderlab.org/EM_Genesets/current_release/) to see all available species. 
+
+```{r}
+gmt_url = "http://download.baderlab.org/EM_Genesets/current_release/Human/symbol/"
+
+#list all the files on the server
+filenames = getURL(gmt_url)
+tc = textConnection(filenames)
+contents = readLines(tc)
+close(tc)
+
+#get the gmt that has all the pathways and does not include terms inferred from electronic annotations(IEA)
+#start with gmt file that has pathways only
+rx = gregexpr("(?<=<a href=\")(.*.GOBP_AllPathways_no_GO_iea.*.)(.gmt)(?=\">)",
+  contents, perl = TRUE)
+gmt_file = unlist(regmatches(contents, rx))
+
+dest_gmt_file <- paste(working_dir,gmt_file,sep="/")
+
+download.file(
+    paste(gmt_url,gmt_file,sep=""),
+    destfile=dest_gmt_file
+)
+
+
+```
+
+
+## Run GSEA
+(GSEA)[http://software.broadinstitute.org/gsea/index.jsp] is a stand alone java program with many customizable options.  It can be easily run through its integrated user interface.  To make this a seemless pipeline we can run GSEA from the command line with a set of options.  Any of the supplied options can be customized and there are many additional options that can be specified.  For more details see (here)[http://software.broadinstitute.org/gsea/doc/GSEAUserGuideTEXT.htm#_Running_GSEA_from]
+
+In the below command the following options have been specified:
+
+ * rnk - path to the rank file
+ * gmx - path to the gene set definition (gmt) file
+ * collapse - true/false indicates whether the expression/rnk file needs to be collapsed from probes to gene symbols
+ * nperm - number of permutations
+ * permute - permute gene sets or phentoypes.  For GSEA preranked you can only permute genesets.
+ * scoring_scheme - 
+ * rpt_label - name of the directory with output
+ * num - number of results to plot output file for
+ * rnd_seed - random seed to use
+ * set_max - maximum size for individual gene sets.  In GSEA interface this is set to 500 but we prefer to use a more stringent setting of 200. 
+ * set_min - minimum size for individual gene sets 
+ * zip_report - true/false to zip output directory
+ * out - directory where to place the result directory.
+ * gui - true/false. When running GSEA from the commandline this needs to be false.
+
+ 
+ 
+```{r}
+if(run_gsea){
+  command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", dest_gmt_file, "-rnk" ,paste(working_dir,rnk_file,sep="/"), "-collapse false -nperm 1000 -permute gene_set -scoring_scheme weighted -rpt_label ",analysis_name,"  -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,working_dir, "-gui false > gsea_output.txt",sep=" ")
+  system(command)
+}
+```
+
+## Get the name of the GSEA output directory
+Although GSEA allows you to specify the name of the output directory and the destination folder it add additional words and numbers to the folder name.  Some are predictable and some are automatically generated.  Get all the GSEA results directories found in the current directory.  If there are multiple GSEA results folders each will be used to create an enrichment map.
+
+```{r}
+if(gsea_directory == ""){
+  gsea_directories <- list.files(path = working_dir, pattern = "\\.GseaPreranked")
+
+  #get the details on the files
+  details = file.info(paste(getwd(),working_dir,gsea_directories,sep="/"))
+  #order according to newest to oldest
+  details = details[with(details, order(as.POSIXct(mtime),decreasing = TRUE)), ]
+
+  #use the newest file:
+  gsea_output_dir <- row.names(details)[1]
+} else {
+  gsea_output_dir <- gsea_directory
+}
+
+```
+
+## Launch Cytoscape
+Create EM through Cyrest interface - make sure you open cytoscape with a -R 1234 (to enable rest functionality) and allow R to talk directly to cytoscape.
+
+Launch Cytoscape (by default cytoscape will automatically enable rest so as long as cytoscape 3.3 or higher is open R should be able to communicate with it)  
+
+## Set up connection from R to cytoscape 
+```{r}
+# Basic settings
+port.number = 1234
+base.url = paste("http://localhost:", toString(port.number), "/v1", sep="")
+
+#print(base.url)
+
+version.url = paste(base.url, "version", sep="/")
+cytoscape.open = TRUE
+
+tryCatch(expr = { GET(version.url)}, 
+         error = function(e) { return (cytoscape.open = FALSE)}, finally =function(r){ return(cytoscape.open = TRUE)})
+         
+if(!cytoscape.open){
+  #try and launch cytoscape
+ print("Cytoscape is not open.  Please launch cytoscape.")
+} else{
+  cytoscape.version =  GET(version.url)
+  cy.version = fromJSON(rawToChar(cytoscape.version$content))
+  print(cy.version)
+  
+}
+
+```
+
+## Create an Enrichment map
+```{r}
+#detach("package:EasycyRest", unload = TRUE)
+
+#use easy cyRest library to communicate with cytoscape.
+tryCatch(expr = { library(devtools)}, 
+         error = function(e) { install.packages("devtools")}, finally = library(devtools))
+tryCatch(expr = { library(r2cytoscape)}, 
+          error = function(e) { install_github('cytoscape/cytoscape-automation/for-scripters/R/r2cytoscape')}, finally = library(r2cytoscape))
+tryCatch(expr = { library(EasycyRest)}, 
+          error = function(e) { install_github('BaderLab/Easycyrest/EasycyRest')}, finally = library(EasycyRest))
+
+
+
+#defined threshold for GSEA enrichments (need to be strings for cyrest call)
+pvalue_gsea_threshold <- "0.01"
+qvalue_gsea_threshold <- "0.01"
+
+similarity_threshold <- "0.375"
+similarity_metric = "COMBINED"
+
+GSEA_results <- paste(gsea_output_dir,sep="/")
+current_rank_filename = paste(working_dir,rnk_file,sep="/")
+cur_model_name <- analysis_name
+
+gsea_results_path <- paste(GSEA_results,"edb",sep="/")
+gsea_results_filename <- paste(gsea_results_path,"results.edb",sep="/")
+gmt_gsea_file <- paste(gsea_results_path,"gene_sets.gmt",sep="/")
+gsea_ranks_file <- paste(gsea_results_path,list.files(gsea_results_path,pattern=".rnk"),sep="/")
+
+
+#######################################
+#create EM pvalue < 0.01 and qvalue < 0.01
+#######################################
+current_network_name <- paste(cur_model_name,pvalue_gsea_threshold,qvalue_gsea_threshold,sep="_")
+
+em_command = paste('enrichmentmap build analysisType="gsea" gmtFile=',gmt_gsea_file,
+                   'pvalue=',pvalue_gsea_threshold, 'qvalue=',qvalue_gsea_threshold,
+                   'similaritycutoff=',similarity_threshold,
+                   'coeffecients=',similarity_metric,'ranksDataset1=', 
+                   gsea_ranks_file,'enrichmentsDataset1=',gsea_results_filename,
+                   'expressionDataset1=',paste(getwd(),working_dir,expression_file,sep="/"),
+                   sep=" ")
+
+#enrichment map command will return the suid of newly created network.
+response <- commandRun(em_command)
+
+current_network_suid <- 0
+#enrichment map command will return the suid of newly created network unless it Failed.  If it failed it will contain the word failed
+if(grepl(pattern="Failed", response)){
+  paste(response)
+} else {
+  current_network_suid <- response
+}
+
+response <- renameNetwork(current_network_name, network = current_network_suid)
+
+
+```
+
+```{r}
+formatEnrichmentmap(network = current_network_suid, base.url = base.url)
+
+#annotate the network
+aa_command = paste("autoannotate annotate-clusterBoosted clusterAlgorithm=MCL maxWords=3 network=",current_network_name, sep=" ")
+
+#enrichment map command will return the suid of newly created network.
+response <- commandRun(aa_command)
+
+```
+

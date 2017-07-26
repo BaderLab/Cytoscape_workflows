@@ -1,0 +1,143 @@
+---
+title: "Download TCGA Ovarian Serous Cystadenocarcinoma Data from GDC Portal"
+author: "Ruth Isserlin"
+date: "`r format(Sys.Date())`"
+    output:
+      html_document:
+        keep_md: true
+---
+
+This protocol processes RNA-seq data using the R programming environment and specialized packages from Bioconductor to create genes lists. The scripts are available for download and novice users can copy and paste commands into R console. To create gene expression data for Protocol 1B, we downloaded gene expression data from the Ovarian Serous Cystadenocarcinoma project of The Cancer Genome Atlas (TCGA), http://cancergenome.nih.gov via the Genomic Data Commons (GDC) portal on 2017-06-14 using TCGABiolinks R package. The dataset includes 544 samples available as RMA-normalized microarray data (Affymetrix HG-U133A), and 309 samples available as RNA-seq data, with reads mapped to a reference genome using MapSplice58 and read counts per transcript determined using the RSEM method59. RNA-seq data are labeled in the dataset as ‘RNA-Seq V2’, see details at: https://wiki.nci.nih.gov/display/TCGA/RNA-Seq+Version+2). The RNA-SeqV2 dataset consists of raw counts similar to regular RNA-seq but RSEM data can be used with the edgeR method. 
+
+TCGABiolinks R package allows users to download raw or scored data directly from GDC portal.  Both new datasets as well as legacy TCGA data are available for downlod
+
+```{r, message=FALSE, warning=FALSE}
+#for the latest version install from github
+#devtools::install_github(repo = "BioinformaticsFMRP/TCGAbiolinks")
+source("https://bioconductor.org/biocLite.R")
+#biocLite("TCGAbiolinks")
+#make sure the version is at least or greater than 2.5.3
+library("TCGAbiolinks")
+library("SummarizedExperiment")
+```
+
+## subtype definitions
+For our analysis we want to restrict the samples in our supplementary files to just a few subtypes but for a general analysis this is not required. 
+
+```{r}
+#load class definitions
+classDefinitions_verhaak <-  read.table( "data/Verhaak_supplementary_table1_OV_subtypes.txt", header = TRUE, sep = "\t", quote="\"",  stringsAsFactors = FALSE)
+```
+
+
+## Download and format TCGA OV microarray data
+
+```{r}
+#try and download the microarray expressions data.
+query_microarray <- GDCquery(project = "TCGA-OV", 
+                   data.category = "Gene expression",
+                   data.type = "Gene expression quantification",
+                   platform = "HT_HG-U133A",
+                   access = "open",
+                   legacy = TRUE)
+  GDCdownload(query_microarray )
+  OVMicroarray <- GDCprepare(query_microarray )
+  
+```
+
+
+```{r}
+microarray <- assay(OVMicroarray)
+
+#remove the duplicate genes and make gene names the matrix row names
+microarray <- microarray[which(!duplicated(rownames(microarray))),]
+
+
+#compute the 12 character barcode for each patients
+microarrayPatients <- cbind(colnames(microarray), gsub('\\.','-',substring(colnames(microarray),1,12)))
+
+#only include patients that were included in Verhaak dataset
+microarray <- microarray[,which(microarrayPatients[,2] %in% classDefinitions_verhaak[which(!is.na(classDefinitions_verhaak$SUBTYPE)),"ID"])]
+
+
+microarrayPatients <- merge(microarrayPatients,classDefinitions_verhaak[,c("ID","SUBTYPE")],by.x = 2, by.y =1)
+colnames(microarrayPatients) <- c( "barcode","patient","SUBTYPE")
+#only include patients that have microarray data for them
+microarrayPatients <- microarrayPatients[which(microarrayPatients$patient %in% colnames(microarray)),]
+microarrayPatients <- microarrayPatients[order(microarrayPatients$SUBTYPE),]
+
+#convert the barcodes so that they will be compatible with colnames (R doesn't like "-" in column names)
+microarrayPatients$patient <- gsub('-','\\.',microarrayPatients$patient)
+colnames(microarray) <- gsub('-','\\.',colnames(microarray))
+microarray <- microarray[,colnames(microarray)[order(match(colnames(microarray),microarrayPatients$patient))]]
+
+
+```
+
+
+```{r}
+write.table(microarray,"./data/Supplementary_Table10_TCGA_Microarray_rmanormalized.txt",col.name=TRUE,sep="\t",row.names=TRUE,quote=FALSE)
+
+write.table(microarrayPatients,"./data/Supplementary_Table11_Microarray_classdefinitions.txt",col.name=TRUE,sep="\t",row.names=TRUE,quote=FALSE)
+
+```
+
+
+## Download and format TCGA OV RNASeq data
+
+
+
+
+```{r}
+  query <- GDCquery(project = "TCGA-OV", 
+                   data.category = "Gene expression",
+                   data.type = "Gene expression quantification",
+                   experimental.strategy = "RNA-Seq",
+                   platform = "Illumina HiSeq",
+                   access = "open",
+                   file.type = "results",
+                   legacy = TRUE)
+  GDCdownload(query)
+  OVRnaseqSE <- GDCprepare(query)
+  
+```
+```{r}
+rnaseq <- assay(OVRnaseqSE)
+
+#remove the duplicate genes and make gene names the matrix row names
+rnaseq <- rnaseq[which(!duplicated(rownames(rnaseq))),]
+
+#compute the 12 character barcode for each patients
+rnaseqPatients <- cbind(colnames(rnaseq), gsub('\\.','-',substring(colnames(rnaseq),1,12)))
+
+#only include patients that were included in Verhaak dataset
+rnaseq <- rnaseq[,which(rnaseqPatients[,2] %in% classDefinitions_verhaak[which(!is.na(classDefinitions_verhaak$SUBTYPE)),"ID"])]
+
+rnaseqPatients <- merge(rnaseqPatients,classDefinitions_verhaak[,c("ID","SUBTYPE")],by.x = 2, by.y =1)
+colnames(rnaseqPatients) <- c( "barcode","patient","SUBTYPE")
+#change the order of the classes so mesenchymal and immunoreactive are first
+rnaseqPatients <- rbind(rnaseqPatients[which(rnaseqPatients$SUBTYPE == "Mesenchymal"),],
+                        rnaseqPatients[which(rnaseqPatients$SUBTYPE == "Immunoreactive"),],
+                        rnaseqPatients[which(rnaseqPatients$SUBTYPE == "Differentiated"),],
+                        rnaseqPatients[which(rnaseqPatients$SUBTYPE == "Proliferative"),])
+#rnaseqPatients <- rnaseqPatients[order(rnaseqPatients$SUBTYPE),]
+
+
+#convert the barcodes so that they will be compatible with colnames (R doesn't like "-" in column names)
+rnaseqPatients$patient <- gsub('-','\\.',rnaseqPatients$patient)
+colnames(rnaseq) <- gsub('-','\\.',colnames(rnaseq))
+rnaseq <- rnaseq[,colnames(rnaseq)[order(match(colnames(rnaseq),rnaseqPatients$patient))]]
+
+
+#rnaseq <- rnaseq[,which(colnames(rnaseq) %in% rnaseqPatients[which(rnaseqPatients$SUBTYPE== "Immunoreactive" | rnaseqPatients$SUBTYPE == "Mesenchymal"  ),"patient"])]
+```
+
+```{r}
+write.table(rnaseq,"./data/Supplementary_Table12_TCGA_RNASeq_rawcounts.txt",col.name=TRUE,sep="\t",row.names=TRUE,quote=FALSE)
+
+
+write.table(rnaseqPatients,"./data/Supplementary_Table13_RNASeq_classdefinitions.txt",col.name=TRUE,sep="\t",row.names=TRUE,quote=FALSE)
+```
+
+
+

@@ -1,0 +1,149 @@
+---
+title: "Supplementary Protocol 2 – create a gene list by analyzing gene expression data from Affymetrix microarrays with Limma"
+author: "Ruth Isserlin"
+date: "`r format(Sys.Date())`"
+    output:
+      html_document:
+        keep_md: true
+---
+This protocol demonstrates the extraction of gene lists for pathway enrichment analysis using RMA-normalized gene expression data from Affymetrix microarrays for downstream pathway enrichment analysis with g:Profiler, GSEA and other similar tools. g:Profiler requires a ranked list of differentially expressed genes that are filtered according to a significance cut-off. GSEA requires a two-column tab-separated RNK file with a ranked list of all genes in the genome. In the RNK file, the first column specifies the gene name and the second column specifies a numeric score representing the level of differential expression. For both methods, the first step involves calculating a statistic for each gene that represents the difference in its expression levels between the two groups. This step is performed using the limma R package. 
+
+9. Load required Bioconductor packages into R
+```{r}
+#check to see if the library has already been installed.  If it hasn't then install it. 
+tryCatch(expr = { library("Biobase")}, 
+         error = function(e) { 
+           source("https://bioconductor.org/biocLite.R")
+           biocLite("Biobase")}, 
+         finally = library("Biobase"))
+
+tryCatch(expr = { library("limma")}, 
+         error = function(e) { 
+           source("https://bioconductor.org/biocLite.R")
+           biocLite("limma")}, 
+         finally = library("limma"))
+
+```
+
+10. Set the working directory to the location of where the Supplemental Tables 1-4 are stored. The function getwd() shows the working directory and dir() shows its files.
+```{r}
+setwd("./data") 
+working_dir <- "./data"
+```
+
+11. Load expression data into R. Minimally the expression set requires a gene name for each row and typically at least 6 expression values (3 values in each compared class). Our dataset consists of 216 patients with 107 immunoreactive and 109 mesenchymal samples. After loading, use the command head(expressionMatrix) to verify the loaded matrix.
+
+```{r}
+expressionMatrix <- as.matrix(read.table(
+  paste(working_dir, "Supplementary_Table9_TCGA_Microarray_rmanormalized.txt",sep="/"), header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE))
+
+```
+
+12. Load subtype classification of samples. To calculate differential expression, we need to define at least 2 classes of samples. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into mesenchymal and immunoreactive classes (Supplementary Table 3, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal. 
+```{r}
+classDefinitions <- read.table( paste(working_dir,"Supplementary_Table10_Microarray_classdefinitions.txt",sep="/"), header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+identical(colnames(expressionMatrix), classDefinitions$patient)
+
+```
+13. Format data and class definitions for limma. The expression data needs to be converted to an object of type ExpressionSet. The ExpressionSet needs to include a data matrix where rows are genes, columns are samples and each cell contains an expression value. Classes need to be defined as factors.
+```{r}
+minimalSet <- ExpressionSet(assayData=expressionMatrix)
+classes <- factor(classDefinitions[,"SUBTYPE"])
+
+```
+
+14. Create a model matrix with the defined classes.
+```{r}
+modelDesign <- model.matrix(~ 0 + classes)
+```
+
+15. Fit the model to the expression matrix.
+```{r}
+fit <- lmFit(minimalSet, modelDesign)
+```
+
+16. Create the contrast matrix - By specifying Mesenchymal first and Immunoreactive second, positive logFC and t-values refer to higher expression levels (up-regulation) in the Mesenchenchymal versus Immunoreactive samples 
+```{r}
+contrastnm <- c("classesMesenchymal-classesImmunoreactive") 
+contrast.matrix <- makeContrasts(original ="classesMesenchymal-classesImmunoreactive", 
+                                 mesenvsrest = "classesMesenchymal-(classesImmunoreactive + classesProliferative +classesDifferentiated)/3",
+                                 immunovsrest = "classesImmunoreactive-(classesMesenchymal + classesProliferative +classesDifferentiated)/3",
+                                 prolifvsrest = "classesProliferative-(classesMesenchymal + classesImmunoreactive +classesDifferentiated)/3", 
+                                 diffvsrest = "classesDifferentiated-(classesMesenchymal + classesImmunoreactive +classesProliferative)/3",levels=modelDesign)
+#contrast.matrix <- makeContrasts(mesenvsrest = "classesMesenchymal-(classesImmunoreactive + classesProliferative +classesDifferentiated)/3",levels=modelDesign)
+```
+
+17. Model contrasts of gene expression. The following command models gene expression differences of each gene between the two groups of samples using linear regression and computes coefficients and standard errors.
+```{r}
+fit1 <- contrasts.fit(fit, contrast.matrix)
+```
+
+18. Compute differential expression statistics. Given a fitted linear regression model, the command generates a table containing the log fold change, average expression, t statistic, p-value, adjusted p-value and B statistic for each entity in the expression matrix using empirical Bayes statistics. The B-statistic represents the log-odds that the gene is differentially expressed but it is based on a prior assumption of how many genes are differentially expressed in the dataset. Because of its reliance on this prior assumption, the adjusted p-value is preferentially used as an indicator of significant differential expression.
+```{r}
+fit2 <- eBayes(fit1)
+```
+
+19. Generate a table with differentially expressed genes and adjust for multiple hypothesis testing using Benjamini-Hochberg False Discovery Rate. The table contains all genes ranked by p-value and shown with log fold change, average expression, t-statistic, p-value, adjusted p-value and B-statistic. 
+```{r}
+topfit <- topTable(fit2, coef="immunovsrest",number=nrow(expressionMatrix), adjust="BH")
+```
+
+
+20a. Create the gene list for use in g:Profiler or another thresholded enrichment tool. The list may comprise all genes that have a significant FDR-corrected p-value, all up-regulated genes with a significant FDR p-value, all down-regulated genes with a significant FDR p-value, or some other combination of thresholds.
+ * To get all significant genes:
+```{r}
+length(which(topfit$adj.P.Val<0.05))
+topgenes_qvalue005 <- rownames(topfit)[which(topfit$adj.P.Val<0.05)]
+head(topgenes_qvalue005)
+write.table(topgenes_qvalue005, 
+"ImmunovsRest_allsignificantgenes.txt", 
+col.names=FALSE, sep="\t", row.names=FALSE, quote=FALSE)
+```
+
+ * Significantly up-regulated genes in mesenchymal samples have positive logFC and t-values.
+```{r}
+length(which(topfit$adj.P.Val<0.05 & topfit$t >0))
+topgenes_qvalue005_mesenchymal <-
+	rownames(topfit)[which(topfit$adj.P.Val<0.05 & topfit$t >0)]
+head(topgenes_qvalue005_mesenchymal)
+write.table(topgenes_qvalue005_mesenchymal, "ImmunovsRest_immuno_significantgenes.txt", col.names=FALSE, sep="\t", row.names=FALSE, quote=FALSE)
+```
+
+ * Significantly up-regulated genes in immunoreactive samples have negative logFC and t-values.
+```{r}
+length(which(topfit$adj.P.Val<0.05 & topfit$t <0))
+topgenes_qvalue005_immunoreactive<- rownames(topfit)[which(topfit$adj.P.Val<0.05 & topfit$t <0)]
+head(topgenes_qvalue005_immunoreactive)
+write.table(topgenes_qvalue005_immunoreactive, 
+"ImmunovsRest_rest_significantgenes.txt", col.names=FALSE, sep="\t", row.names=FALSE, quote=FALSE)
+```
+
+20b. Create a rank file for GSEA. To run GSEA in pre-ranked mode, you need a two column RNK file with gene/protein/probe name (column 1) and the associated score (column 2). The first column should contain the same type of gene IDs used in the pathway gene-set (GMT) file. GSEA looks for enrichment in the top and bottom parts of the list, ranking the file using the t-statistic. The t-statistic indicates the strength of differential expression and is used in the p-value calculation. Other scores indicating the strength of differential expression may be used as well. GSEA ranks the most up-regulated genes at the top of the list and the most down-regulated at the bottom of the list. Genes at the top of the list are more highly expressed in class A compared to class B, while genes at the bottom of the list are higher in class B. In this workflow, a positive t-value means a higher expression of a gene in the Mesenchymal samples compared to the Immunoreactive samples (variable constrastnm). The following commands create a data frame with gene IDs and t-statistics, remove lines with missing gene IDs, and store the result as a RNK file. An additional step is usually required in analysis of Affymetrix microarray data as genes are represented with multiple probesets. The most significant probeset or average probeset score may be considered for every gene.
+```{r}
+ranks <- data.frame(geneID=rownames(topfit),t_stat=topfit[,"t"], stringsAsFactors=F)
+ranks <- ranks[which(ranks[,"geneID"] != ""),]
+write.table(ranks,"ImmunovsRest_limma_ranks.rnk",
+col.name=TRUE,sep="\t",row.names=FALSE, quote=FALSE)
+
+head(ranks)
+```
+
+21. Create an expression file for the enrichment map and save files to the home folder of the analysis. The expression file contains the gene IDs as the first column gene description as the second column and the expression values for each sample as the additional columns. Gene IDs should correspond to the first column of the rank file. The text files will be saved on your computer in the directory specified at the beginning of the script using setwd(). The .rnk, .cls and .txt are all tab delimited files that can be viewed in spreadsheet or in a text editor.
+
+```{r}
+library(biomaRt)
+mart = useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
+
+genes = getBM(attributes = c( 'hgnc_symbol', 'description'), filters='hgnc_symbol', 
+              values=row.names(expressionMatrix), mart=mart);
+genes$description = gsub("\\[Source.*", "", genes$description);
+
+EM_expressionFile <- merge(genes,expressionMatrix,  all.y=TRUE,by.x=1, by.y=0)
+colnames(EM_expressionFile)[1] <- "Name"
+colnames(EM_expressionFile)[2] <- "Description"
+write.table(EM_expressionFile, "TCGA_OV_expression.txt", 
+	col.name=TRUE, sep="\t", row.names=FALSE, quote=FALSE)
+
+
+```
+
