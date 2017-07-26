@@ -4,3 +4,4 @@
 .Ruserdata
 *.GSEAPreRanked.*/*
 *GSEAPreRanked*
+GDCdata/*
