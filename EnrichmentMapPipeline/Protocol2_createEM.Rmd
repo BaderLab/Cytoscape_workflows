@@ -1,10 +1,10 @@
 ---
 title: "Enrichment Map Analysis Pipeline"
 author: "Ruth Isserlin"
-date: "`r format(Sys.Date())`"
-    output:
-      html_document:
-        keep_md: true
+date: '`r format(Sys.Date())`'
+output:
+  html_document:
+    keep_md: yes
 ---
 
 #Materials
@@ -252,6 +252,18 @@ response <- renameNetwork(current_network_name, network = current_network_suid)
 
 ```
 
+## Get a screen shot of the initial network.
+```{r}
+output_network_file <- paste(getwd(),"initial_screenshot_network.png",sep="/")
+
+url_png <- paste(base.url,"networks",current_network_suid,"views/first.png", sep="/")
+response <- GET(url=url_png)
+writeBin(response$content, output_network_file)
+
+```
+
+![Initial Enrichment Map](`r output_network_file`)
+
 ```{r}
 formatEnrichmentmap(network = current_network_suid, base.url = base.url)
 
@@ -262,4 +274,13 @@ aa_command = paste("autoannotate annotate-clusterBoosted clusterAlgorithm=MCL ma
 response <- commandRun(aa_command)
 
 ```
+## Get a screen shot of the network after up and down is separated and annotated.
+```{r}
+output_network_file_annot <- paste(getwd(),"screenshot_network_annotated.png",sep="/")
 
+url_png <- paste(base.url,"networks",current_network_suid,"views/first.png", sep="/")
+response <- GET(url=url_png)
+writeBin(response$content, output_network_file_annot)
+
+```
+![Annotated Enrichment Map](`r output_network_file_annot`)
