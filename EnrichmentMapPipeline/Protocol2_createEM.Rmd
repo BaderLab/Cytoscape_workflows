@@ -3,6 +3,7 @@ title: "Enrichment Map Analysis Pipeline"
 author: "Ruth Isserlin"
 date: '`r format(Sys.Date())`'
 output:
+  html_notebook: default
   html_document:
     keep_md: yes
 ---
@@ -67,7 +68,7 @@ gsea_jar <- "./gsea-3.0.jar"
 
 #Gsea takes a long time to run.  If you have already run GSEA manually or previously there is no need to re-run GSEA.  Make sure the 
 # gsea results are in the current directory and the notebook will be able to find them and use them.
-run_gsea = TRUE
+run_gsea = FALSE
 
 #navigate to the directory where you put the downloaded protocol files.
 working_dir <- paste("./data",sep="/")
