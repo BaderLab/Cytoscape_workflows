@@ -24,47 +24,66 @@ data_classes <- "SUBTYPE"
 ```
 
 
-2. Load the expression dataset of 216 tumours, with 107 classified as Immunoreactive and 109 classified as Mesenchymal samples.
+2. Load the expression dataset of 300 tumours, with 79 classified as Immunoreactive, 72 classified as Mesenchymal, 69 classified as Differentiated, and 80 classified as Proliferative samples. The TCGA counts data was retrieved from the GDC and contained counts per mRNA transcript determined using the RSEM method for 19947 transcripts and 300 samples.
 
 ```{r}
 RNASeq <- read.table(  paste(working_dir,"Supplementary_Table12_TCGA_RNASeq_rawcounts.txt",sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
 ```
 
 
-3. Load subtype classification of samples. To calculate differential expression, we need to define at least 2 classes of samples. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into mesenchymal and immunoreactive classes (Supplementary Table 4, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal. 
+3. Load subtype classification of samples. To calculate differential expression, we need to define at least two sample classes. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into mesenchymal and immunoreactive classes (class definitions were obtained from Verhaak et al. Supplementary Table 1, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal.
 
 ```{r}
 classDefinitions_RNASeq <- read.table( paste(working_dir, "Supplementary_Table13_RNASeq_classdefinitions.txt", sep="/"), header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
 ```
 
-4. Filter RNA-seq reads. RNA-Seq data are processed following the edgeR protocol15 that filters reads based on the counts per million (CPM) statistic. RNA-Seq read counts are converted to CPM values and genes with CPM > 1 in at least 42 of the samples are retained for further study (42 is the minimal sample size in the classes).  This step removes genes with very low read counts that are likely not expressed in the majority of samples and cause noise in the data. Note CPM conversion is used to remove low counts while differential gene expression analysis is based on initial normalized read counts. 
+4. Filter RNA-seq reads. RNA-seq data are processed following the edgeR protocol15 that filters reads based on the counts per million (CPM) statistic. RNA-seq read counts are converted to CPM values and genes with CPM > 1 in at least 50 of the samples are retained for further study (50 is the minimal sample size in the classes). This step removes genes with very low read counts that are likely not expressed in the majority of samples and cause noise in the data. Note, CPM filtering is used to remove low counts while differential gene expression analysis is based on normalized read counts which are generated below (step 6). 
+
 ```{r}
 cpms <- cpm(RNASeq)
 keep <- rowSums(cpms > 1) >= 50
-counts <- RNASeq [keep,]
-```
-
-5. Exclude genes with missing symbols. Gene entries in the dataset containing ‘?’ or starting with LOC are excluded as they represent non-annotated genes or other loci that are not present in pathway databases.
-```{r}
-exclude <- grep("\\?|^LOC", rownames(counts), value=T)
-counts <- counts[which(!rownames(counts) %in% exclude),]
+counts <- RNASeq[keep,]
 ```
 
 
-6. Data normalization, dispersion analysis and differential expression analysis is performed with a simple design as described in the edgeR protocol15.
+
+
+5. Data normalization, dispersion analysis is performed on the entire dataset. 
 ```{r}
-d <- DGEList(counts=counts, group=classDefinitions_RNASeq[,data_classes])
+# create data structure to hold counts and subtype information for each sample.
+d <- DGEList(counts=counts, group=classDefinitions_RNASeq$SUBTYPE)
+
+#Normalize the data
 d <- calcNormFactors(d)
-mds_output <- plotMDS(d, labels=classDefinitions_RNASeq[,data_classes], 
-col= c("darkgreen","blue","red","orange")[factor(classDefinitions_RNASeq[,data_classes])])
+
+#create multidimensional scaling(MDS) plot.  The command below will automatically generate the plot containing all samples where each
+# subtype is a different color.  Ideally there should be a good separation between the different classes.
+mds_output <- plotMDS(d, labels=classDefinitions_RNASeq$SUBTYPE, 
+col= c("darkgreen","blue","red", "orange")[factor(classDefinitions_RNASeq$SUBTYPE)])
+
+#calculate dispersion
 d <- estimateCommonDisp(d)
 d <- estimateTagwiseDisp(d)
-de <- exactTest(d, pair=c("Mesenchymal","Immunoreactive"))
-tt <- topTags(de,n=nrow(d))
-
-
 ```
+
+
+6. (Optional) Exclude genes with missing symbols or uncharacterized genes. In this example gene entries in the dataset containing ‘?’ or starting with LOC are excluded as they represent non-annotated genes or other loci that are not present in pathway databases.  The frequency of these and other non protein coding entries in your dataset will depend on the database used to align your RNASeq data. 
 ```{r}
+#the below regular expression excludes gene names that are ? or that start with LOC
+# any number ofadditional terms can be added to the regular expresion, for example 
+# to exclude any genes that start with "His" add |^His to the regular expression
+exclude <- grep("\\?|^LOC", rownames(d), value=T)
+d <- d[which(!rownames(d) %in% exclude),]
+```
+
+7. Differential expression analysis is performed with a simple design as described in the edgeR protocol15.
+```{r}
+#calculate differential expression statistics with a simple design
+de <- exactTest(d, pair=c("Immunoreactive","Mesenchymal"))
+tt_exact_test <- topTags(de,n=nrow(d))
+
+#alternately you can also use the glm model using contrasts.  For a simple 2 class comparison this is not required but if you want to compare
+# 1 class to the remaining 3 classes then this sort of model is useful.
 classes <- factor(classDefinitions_RNASeq[,data_classes])
 modelDesign <- model.matrix(~ 0 + classes)
 
@@ -74,6 +93,8 @@ mesenvsimmuno <- glmLRT(fit_glm , contrast = contrast_mesenvsimmuno)
 tt_mesenvsimmuno <- topTags(mesenvsimmuno,n=nrow(d))
 
 ```
+
+Examples of different designs that can be used for this dataset.  Instead of simple two class design you can also compare one class to the remaining three classes.
 
 ```{r}
 classes <- factor(classDefinitions_RNASeq[,data_classes])
@@ -101,35 +122,59 @@ tt_diffvsrest <- topTags(diffvsrest,n=nrow(d))
 ```
 
 
-7a. Create the gene list for use in g:Profiler or another thresholded enrichment tool. The list may comprise all genes that have a significant FDR-corrected p-value (code shown below), all significant and FDR-corrected up-regulated genes and all down-regulated genes separately, or some other combination of thresholds. Also see analogous step in the microarray protocol.
+8a. Create the gene list for use in g:Profiler or another thresholded enrichment tool. The list may comprise all genes that have a significant FDR-corrected p-value (code shown below), all significant and FDR-corrected up-regulated genes and all down-regulated genes separately, or some other combination of thresholds. Also see analogous step in the microarray protocol.
 ```{r}
-tt <- tt_mesenvsimmuno
+tt <- tt_exact_test
+
+#get the indices of scored dataset that have FDR < 0.05
 select_genes = which(tt$table$FDR<0.05)
+
+#output how many genes there are in the set that have FDR<0.05
 length(select_genes)
-topgenes_qvalue005 <- unlist(lapply( rownames(tt$table)[select_genes], 
-function(data) {unlist(strsplit(data,"\\|"))[1]}))
+
+#gene names from the TCGA set contain gene name and entrez gene ids separated by ‘|’
+# for all subsequent enrichment analysis we need to have just one id.  Separate the names 
+# into their two ids and keep the gene symbols
+topgenes_qvalue005 <- unlist(lapply(rownames(tt$table)[select_genes], 
+                                    function(data) {unlist(strsplit(data,"\\|"))[1]}))
+
+#output the top 5 entries in the list of top genes
 head(topgenes_qvalue005)
-write.table(topgenes_qvalue005, 
-paste(working_dir,"MesenvsImmuno_RNAseq_allsignificantgenes.txt",sep="/"), 
-col.names=FALSE, sep="\t", row.names=FALSE, quote=FALSE)
+
+#write results out to the file.  This is an example of a set that can be used for
+# Protocol 1
+write.table(topgenes_qvalue005, "MesenchymalvsImmunoreactive_RNAseq_allsignificantgenes.txt", 
+            col.names=FALSE, sep="\t", row.names=FALSE, quote=FALSE)
+
 ```
 
-7b. Create a two-column rank (.RNK) file of all gene IDs and corresponding scores to for GSEA pre-ranked analysis. One option is to rank genes by t-statistic of differential gene expression. GSEA will look for enrichment in the set of most differentially expressed genes at the top of the list as well as those at the bottom of the list. Genes at the top of the list are more highly expressed in class A of samples (e.g., mesenchymal) while genes at the bottom are highly expressed in class B (e.g., immunoreactive). An alternative score can be computed by multiplying direction (sign) of fold change and logarithm of p-value for each gene.
+8b. Create a two-column rank (.RNK) file of all gene IDs and corresponding scores to for GSEA pre-ranked analysis. One option is to rank genes by t-statistic of differential gene expression. GSEA will look for enrichment in the set of most differentially expressed genes at the top of the list as well as those at the bottom of the list. Genes at the top of the list are more highly expressed in class A of samples (e.g., mesenchymal) while genes at the bottom are highly expressed in class B (e.g., immunoreactive). An alternative score can be computed by multiplying direction (sign) of fold change and logarithm of p-value for each gene.
 ```{r}
+#calculate ranks
 ranks_RNAseq = sign(tt$table$logFC) * -log10(tt$table$PValue)
+
+#gene names from the TCGA set contain gene name and entrez gene ids separated by ‘|’
+# for all subsequent enrichment analysis we need to have just one id.  Separate the names 
+# into their two ids.
 genenames <- unlist(lapply( rownames(tt$table), function(data) 
   {unlist(strsplit(data,"\\|"))[1]}))
 geneids <- unlist(lapply( rownames(tt$table),  function(data) {unlist(strsplit(data,"\\|"))[2]})) 
+
+#create ranks file
 ranks_RNAseq <- cbind(genenames, ranks_RNAseq)
 colnames(ranks_RNAseq) <- c("GeneName","rank")
+
+#sort ranks in decreasing order
+ranks_RNAseq <- ranks_RNAseq[order(as.numeric(ranks_RNAseq[,2]),decreasing = TRUE),]
+
 write.table(ranks_RNAseq, paste(working_dir,"Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk",sep="/"), 
-col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
+            col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
 ```
 
 
 
 
-8a. Create an expression file for the enrichment map and save it to a file in the working folder. The optional expression file is similar to the expression matrix except for an additional column on the left edge of the matrix. The field often includes gene description however any text value can be added.
+9a. Create an expression file for the enrichment map and save it to a file in the working folder. The optional expression file is similar to the expression matrix except for an additional column on the left edge of the matrix. The field often includes gene description however any text value can be added.
 ```{r}
 normalized_expression_RNAseq <- cpm(d, normalized.lib.size=TRUE)
 
@@ -139,13 +184,9 @@ function(data) {unlist(strsplit(data,"\\|"))[1]}))
 geneids <- unlist(lapply( rownames(normalized_expression_RNAseq), 
 function(data) {unlist(strsplit(data,"\\|"))[2]}))
 
-#create a matrix with the gene names and gene ids
-include_genes <- grep("\\?|^LOC", genenames, invert=T)
-
-EM_expressionFile_RNAseq <- data.frame(Name = genenames[include_genes ], normalized_expression_RNAseq[include_genes ,])
-rownames(EM_expressionFile_RNAseq) <- rownames(normalized_expression_RNAseq[include_genes ,])
+EM_expressionFile_RNAseq <- data.frame(Name = genenames, normalized_expression_RNAseq)
+rownames(EM_expressionFile_RNAseq) <- rownames(normalized_expression_RNAseq)
 colnames(EM_expressionFile_RNAseq) <- substring(colnames(EM_expressionFile_RNAseq),1,12)
-
 
 #Add descriptions instead of geneids
 tryCatch(expr = { library("biomaRt")}, 
@@ -180,7 +221,7 @@ close(fileConn)
 ```
 
 
-8b. Examine gene expression data using heat maps. Heat maps can easily show the separation between sample classes, labeled by colors in the heat map header. By limiting to the most significantly differentially expressed list of genes (FDR-corrected p<0.05) we can verify whether the scoring accurately separates class A from class B. 
+9b. Examine gene expression data using heat maps. Heat maps can easily show the separation between sample classes, labeled by colors in the heat map header. By limiting to the most significantly differentially expressed list of genes (FDR-corrected p<0.05) we can verify whether the scoring accurately separates class A from class B. 
 ```{r}
 tryCatch(expr = { library("pheatmap")}, 
          error = function(e) { 
@@ -194,7 +235,7 @@ tryCatch(expr = { library("RColorBrewer")},
 annotation_col <- data.frame(SUBTYPE=factor(classDefinitions_RNASeq[,data_classes]))
 rownames(annotation_col) <- classDefinitions_RNASeq[,2]
 
-ann_colors = list(SUBTYPE = c(Immunoreactive="#1B9E77", Mesenchymal="#D95F02",Proliferative = "yellow",Differentiated="orange"))
+ann_colors = list(SUBTYPE = c(Immunoreactive="blue", Mesenchymal="red",Proliferative = "orange",Differentiated="darkgreen"))
 col.pal <- rev(brewer.pal(11, "RdBu"))
 
 genes_to_select <- unlist(lapply( rownames(tt$table)[which(tt$table$FDR<0.05)], function(data) 
@@ -213,7 +254,7 @@ pheatmap(matrix_for_heatmap, color=col.pal, scale="row",
 
 ```
 
-Create the other files as well so all the comparisons can be compared.
+Example of other comparison that can be done with this dataset. Rank files for each are also created
 ```{r}
 #Immuno vs rest
 tt <- tt_immunovsrest

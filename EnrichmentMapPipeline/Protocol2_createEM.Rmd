@@ -208,7 +208,7 @@ tryCatch(expr = { library(EasycyRest)},
 
 
 #defined threshold for GSEA enrichments (need to be strings for cyrest call)
-pvalue_gsea_threshold <- "0.01"
+pvalue_gsea_threshold <- "1.0"
 qvalue_gsea_threshold <- "0.01"
 
 similarity_threshold <- "0.375"
@@ -220,7 +220,11 @@ cur_model_name <- analysis_name
 
 gsea_results_path <- paste(GSEA_results,"edb",sep="/")
 gsea_results_filename <- paste(gsea_results_path,"results.edb",sep="/")
-gmt_gsea_file <- paste(gsea_results_path,"gene_sets.gmt",sep="/")
+
+#although there is a gmt file in the gsea edb results directory it have been filtered to contain only genes represented in 
+# the expression set.  If you use this fltered file you will get different pathway connectivity depending on the dataset being
+# used.  We recommend using original gmt file used for the gsea analysis and not the filtered one in the results directory.
+gmt_gsea_file <- paste(getwd(),dest_gmt_file,sep="/")
 gsea_ranks_file <- paste(gsea_results_path,list.files(gsea_results_path,pattern=".rnk"),sep="/")
 
 
@@ -233,7 +237,7 @@ em_command = paste('enrichmentmap build analysisType="gsea" gmtFile=',gmt_gsea_f
                    'pvalue=',pvalue_gsea_threshold, 'qvalue=',qvalue_gsea_threshold,
                    'similaritycutoff=',similarity_threshold,
                    'coeffecients=',similarity_metric,'ranksDataset1=', 
-                   gsea_ranks_file,'enrichmentsDataset1=',gsea_results_filename,
+                   gsea_ranks_file,'enrichmentsDataset1=',gsea_results_filename, 'filterByExpressions=false',
                    'expressionDataset1=',paste(getwd(),working_dir,expression_file,sep="/"),
                    sep=" ")
 
