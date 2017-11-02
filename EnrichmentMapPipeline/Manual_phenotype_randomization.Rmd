@@ -1,0 +1,793 @@
+---
+title: "Compare geneset to phenotype randomization using edgeR"
+output: html_notebook
+---
+
+One of the main criticisms we get when using GSEA is that we use the gene set permutation as opposed to the phenotype permutation.  In the GSEA interface if you use the phenotype permutation you are required to upload your original expression data and use one of the predefined statistical tests in order to test for differential expression. The tests are limited to basic statistical measures (signal to noise, ratio, differnce...).  When using RNASeq data or any  omics data often there are speicalized statistical methods developed to account for intricacies of the data.  For RNASeq the most common scoring methods used are DESeq and EdgeR.  
+
+In the current notebook we try and demonstrate the difference between geneset and phenotype permutation using the specialized test as well as phenotype permutation using the GSEA native statistical test.
+
+1. Load required Bioconductor packages into R. 
+```{r}
+tryCatch(expr = { library("edgeR")}, 
+         error = function(e) { 
+           source("https://bioconductor.org/biocLite.R")
+           biocLite("edgeR")}, 
+         finally = library("edgeR"))
+
+working_dir <- paste(".","data",sep="/")
+rand_working_dir <- paste(".","data","Randomizations",sep="/")
+
+#The field in the class definition file that defines the classes of the data.
+data_classes <- "SUBTYPE"
+```
+
+
+2. Load the expression dataset of 300 tumours, with 79 classified as Immunoreactive, 72 classified as Mesenchymal, 69 classified as Differentiated, and 80 classified as Proliferative samples. The TCGA counts data was retrieved from the GDC and contained counts per mRNA transcript determined using the RSEM method for 19947 transcripts and 300 samples.
+
+```{r}
+RNASeq <- read.table(  paste(working_dir,"Supplementary_Table12_TCGA_RNASeq_rawcounts.txt",sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+```
+
+
+3. Load subtype classification of samples. To calculate differential expression, we need to define at least two sample classes. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into mesenchymal and immunoreactive classes (class definitions were obtained from Verhaak et al. Supplementary Table 1, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal.
+
+```{r}
+classDefinitions_RNASeq <- read.table( paste(working_dir, "Supplementary_Table13_RNASeq_classdefinitions.txt", sep="/"), header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+```
+
+4. Filter RNA-seq reads. RNA-seq data are processed following the edgeR protocol15 that filters reads based on the counts per million (CPM) statistic. RNA-seq read counts are converted to CPM values and genes with CPM > 1 in at least 50 of the samples are retained for further study (50 is the minimal sample size in the classes). This step removes genes with very low read counts that are likely not expressed in the majority of samples and cause noise in the data. Note, CPM filtering is used to remove low counts while differential gene expression analysis is based on normalized read counts which are generated below (step 6). 
+
+```{r}
+cpms <- cpm(RNASeq)
+keep <- rowSums(cpms > 1) >= 50
+counts <- RNASeq[keep,]
+```
+
+
+
+
+Perform the real differential analysis 
+5. Data normalization, dispersion analysis is performed on the entire dataset. 
+```{r}
+# create data structure to hold counts and subtype information for each sample.
+d <- DGEList(counts=counts, group=classDefinitions_RNASeq$SUBTYPE)
+
+#Normalize the data
+d <- calcNormFactors(d)
+
+#create multidimensional scaling(MDS) plot.  The command below will automatically generate the plot containing all samples where each
+# subtype is a different color.  Ideally there should be a good separation between the different classes.
+mds_output <- plotMDS(d, labels=classDefinitions_RNASeq$SUBTYPE, 
+col= c("darkgreen","blue","red", "orange")[factor(classDefinitions_RNASeq$SUBTYPE)])
+
+#calculate dispersion
+d <- estimateCommonDisp(d)
+d <- estimateTagwiseDisp(d)
+```
+
+
+6. (Optional) Exclude genes with missing symbols or uncharacterized genes. In this example gene entries in the dataset containing ‘?’ or starting with LOC are excluded as they represent non-annotated genes or other loci that are not present in pathway databases.  The frequency of these and other non protein coding entries in your dataset will depend on the database used to align your RNASeq data. 
+```{r}
+#the below regular expression excludes gene names that are ? or that start with LOC
+# any number ofadditional terms can be added to the regular expresion, for example 
+# to exclude any genes that start with "His" add |^His to the regular expression
+exclude <- grep("\\?|^LOC", rownames(d), value=T)
+d <- d[which(!rownames(d) %in% exclude),]
+```
+
+7. Differential expression analysis is performed with a simple design as described in the edgeR protocol15.
+```{r}
+#calculate differential expression statistics with a simple design
+de <- exactTest(d, pair=c("Immunoreactive","Mesenchymal"))
+tt_exact_test <- topTags(de,n=nrow(d))
+
+tt <- tt_exact_test
+#calculate ranks
+ranks_RNAseq = sign(tt$table$logFC) * -log10(tt$table$PValue)
+
+#gene names from the TCGA set contain gene name and entrez gene ids separated by ‘|’
+# for all subsequent enrichment analysis we need to have just one id.  Separate the names 
+# into their two ids.
+genenames <- unlist(lapply( rownames(tt$table), function(data) 
+  {unlist(strsplit(data,"\\|"))[1]}))
+geneids <- unlist(lapply( rownames(tt$table),  function(data) {unlist(strsplit(data,"\\|"))[2]})) 
+
+#create ranks file
+ranks_RNAseq <- cbind(genenames, ranks_RNAseq)
+colnames(ranks_RNAseq) <- c("GeneName","rank")
+
+#sort ranks in decreasing order
+ranks_RNAseq <- ranks_RNAseq[order(as.numeric(ranks_RNAseq[,2]),decreasing = TRUE),]
+rnk_file <- paste(rand_working_dir,"MesenvsImmuno_RNASeq_ranks.rnk",sep="/")
+write.table(ranks_RNAseq, rnk_file, 
+            col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
+
+```
+
+Create an expression file for the enrichment map and save it to a file in the working folder. The optional expression file is similar to the expression matrix except for an additional column on the left edge of the matrix. The field often includes gene description however any text value can be added.
+```{r}
+normalized_expression_RNAseq <- cpm(d, normalized.lib.size=TRUE)
+
+#From the rownames parse out the gene name and the geneids
+genenames <- unlist(lapply( rownames(normalized_expression_RNAseq), 
+function(data) {unlist(strsplit(data,"\\|"))[1]}))
+geneids <- unlist(lapply( rownames(normalized_expression_RNAseq), 
+function(data) {unlist(strsplit(data,"\\|"))[2]}))
+
+EM_expressionFile_RNAseq <- data.frame(Name = genenames, normalized_expression_RNAseq)
+rownames(EM_expressionFile_RNAseq) <- rownames(normalized_expression_RNAseq)
+colnames(EM_expressionFile_RNAseq) <- substring(colnames(EM_expressionFile_RNAseq),1,12)
+
+#Add descriptions instead of geneids
+tryCatch(expr = { library("biomaRt")}, 
+         error = function(e) { 
+           source("https://bioconductor.org/biocLite.R")
+           biocLite("biomaRt")}, 
+         finally = library("biomaRt"))
+mart = useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
+
+genes = getBM(attributes = c( 'hgnc_symbol', 'description'), filters='hgnc_symbol', 
+              values=genenames, mart=mart);
+genes$description = gsub("\\[Source.*", "", genes$description);
+
+EM_expressionFile_RNAseq <- merge(genes,EM_expressionFile_RNAseq,  all.y=TRUE,by.x=1, by.y=1)
+colnames(EM_expressionFile_RNAseq)[1] <- "Name"
+colnames(EM_expressionFile_RNAseq)[2] <- "Description"
+
+write.table(EM_expressionFile_RNAseq, paste(rand_working_dir,"Supplementary_Table6_TCGA_OV_RNAseq_expression.txt", sep="/"),
+            col.name=TRUE,sep="\t", row.names=FALSE, quote=FALSE)
+
+#write out a GSEA classes file. (optional)
+fileConn <- file(paste(rand_working_dir,"Supplementary_Table9_TCGA_OV_RNAseq_classes.cls",sep="/"))
+writeLines(c(paste(length(classDefinitions_RNASeq[,data_classes]), "4 1"), 
+             paste("# ", unique(classDefinitions_RNASeq[,data_classes])[1], " ",
+                   unique(classDefinitions_RNASeq[,data_classes])[2], " ",
+                   unique(classDefinitions_RNASeq[,data_classes])[3], " ",
+                   unique(classDefinitions_RNASeq[,data_classes])[4])), fileConn)
+write.table(t(classDefinitions_RNASeq[,data_classes]), 
+            paste(rand_working_dir,"Supplementary_Table9_TCGA_OV_RNAseq_classes.cls",sep="/"), col.name=FALSE, sep="\t",
+            row.names=FALSE, quote=FALSE, append=TRUE)
+close(fileConn)
+```
+
+
+Run GSEA
+```{r}
+#path to GSEA jar 
+# In order to run GSEA automatically you need to speciry the path to the gsea jar file.
+gsea_jar <- "./gsea-3.0.jar"
+
+#Gsea takes a long time to run.  If you have already run GSEA manually or previously there is no need to re-run GSEA.  Make sure the 
+# gsea results are in the current directory and the notebook will be able to find them and use them.
+run_gsea = TRUE
+
+# leave blank if you want the notebook to discover the gsea directory for itself
+#gsea_directory = paste(working_dir,"Mesen_vs_Immuno.GseaPreranked.1497635459262",sep="/") 
+gsea_directory = ""
+
+analysis_name <- "Mesen_vs_Immuno"
+expression_file <- "Supplementary_Table6_TCGA_OV_RNAseq_expression.txt"
+classes_file <- "Supplementary_Table9_TCGA_OV_RNAseq_classes.cls"
+
+#TODO: change this to update to the latest gmt file.
+dest_gmt_file <- paste(working_dir,"Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_July_01_2017_symbol.gmt" ,sep="/")
+
+```
+
+
+Run GSEA with geneset randomization
+```{r}
+if(run_gsea){
+  command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", dest_gmt_file, "-rnk" ,rnk_file, "-collapse false -nperm 1000 -permute gene_set -scoring_scheme weighted -rpt_label ",paste(analysis_name,"gsrand",sep="_"),"  -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,rand_working_dir, "-gui false > gsea_output.txt",sep=" ")
+  system(command)
+}
+```
+
+Run GSEA with phenotype randomization
+```{r}
+if(run_gsea){
+  command <- paste("java  -Xmx4G -cp",gsea_jar,  "xtools.gsea.Gsea -gmx", dest_gmt_file, "-res" ,paste(rand_working_dir,expression_file,sep="/"),"-cls",paste(rand_working_dir,paste(classes_file,"#Mesenchymal_versus_Immunoreactive",sep=""),sep="/"), "-collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute phenotype -rnd_type no_balance -scoring_scheme weighted -rpt_label ",paste(analysis_name,"phenorand",sep="_")," -metric Signal2Noise -sort real -order descending -create_gcts false -create_svgs false -include_only_symbols true -make_sets true -median false  -num 100 -plot_top_x 20 -rnd_seed 12345 -save_rnd_lists false -set_max 200 -set_min 15 -zip_report false -out" ,rand_working_dir, "-gui false > gsea_output.txt",sep=" ")
+  system(command)
+}
+```
+
+
+##Randomizations
+Instead of randomizing in GSEA create our own phenotype randomization in R.  Do the following steps:
+
+ 1. Shuffle the class labels using the R sample function.  (Even though that data consists of 4 classes we do not limit the shuflling to just the two classes being compared)
+ 1. Normalize shuffled data
+ 1. calculate dispersion of shuffled data
+ 1. exclude genes with LOC names
+ 1. calculated differential expression using edgeR
+ 1. run GSEA preranked using resulting ranks (*Needed to specify i permutation as if I set permutation to 0 GSEA would not calculate the NES or an FDR value.  We are not interested in the FDR value but we do need the NES value.)
+ 1. Repeat for X randomizations.
+ 
+ *X = 1000 for this analysis
+
+```{r}
+library("foreach")
+library("doParallel")
+
+
+cl <- makeCluster(detectCores() - 1)
+registerDoParallel(cl, cores = detectCores() - 1)
+
+  
+  data = foreach(i = 6:1000, .packages = c("edgeR"),
+               .combine = rbind) %dopar% {
+                 try({
+    analysis_name <- paste("Rand",i,sep="_")
+
+    rand_class <- sample(classDefinitions_RNASeq$SUBTYPE)
+    
+    # create data structure to hold counts and subtype information for each sample.
+    d <- DGEList(counts=counts, group=rand_class)
+    
+    #Normalize the data
+    d <- calcNormFactors(d)
+    
+    #calculate dispersion
+    d <- estimateCommonDisp(d)
+    d <- estimateTagwiseDisp(d)
+    
+    #the below regular expression excludes gene names that are ? or that start with LOC
+    # any number ofadditional terms can be added to the regular expresion, for example 
+    # to exclude any genes that start with "His" add |^His to the regular expression
+    exclude <- grep("\\?|^LOC", rownames(d), value=T)
+    d <- d[which(!rownames(d) %in% exclude),]
+    
+    #calculate differential expression statistics with a simple design
+    de <- exactTest(d, pair=c("Immunoreactive","Mesenchymal"))
+    tt_exact_test <- topTags(de,n=nrow(d))
+    
+    tt <- tt_exact_test
+    #calculate ranks
+    ranks_RNAseq = sign(tt$table$logFC) * -log10(tt$table$PValue)
+    
+    #gene names from the TCGA set contain gene name and entrez gene ids separated by ‘|’
+    # for all subsequent enrichment analysis we need to have just one id.  Separate the names 
+    # into their two ids.
+    genenames <- unlist(lapply( rownames(tt$table), function(data) 
+      {unlist(strsplit(data,"\\|"))[1]}))
+    geneids <- unlist(lapply( rownames(tt$table),  function(data) {unlist(strsplit(data,"\\|"))[2]})) 
+    
+    #create ranks file
+    ranks_RNAseq <- cbind(genenames, ranks_RNAseq)
+    colnames(ranks_RNAseq) <- c("GeneName","rank")
+    
+    #sort ranks in decreasing order
+    ranks_RNAseq <- ranks_RNAseq[order(as.numeric(ranks_RNAseq[,2]),decreasing = TRUE),]
+    rank_filename <- paste(rand_working_dir,paste("rand",i,"ranks.rnk",sep="_"),sep="/")
+    write.table(ranks_RNAseq, rank_filename, 
+                col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
+    
+    #need to set permutation number to 1 in order for the NES to be calculated.  If you set it to zero the the results have no p-value, fdr or NES values. 
+     command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", dest_gmt_file, "-rnk" ,rank_filename, "-collapse false -nperm 1 -permute gene_set -scoring_scheme weighted -rpt_label ",analysis_name,"  -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,rand_working_dir, "-gui false > gsea_output.txt",sep=" ")
+      system(command)
+ })
+               }
+  stopCluster(cl)
+```
+
+
+##Calculate FDR
+In order to calculate the FDR load in the GSEA results from each of the randomizations.  For each geneset collect its es and nes values.  To calculate the FDR for each geneset:
+ 1. For given geneset get all random es and nes values.
+ 1. If given geneset has a negative es value, count the number of random es values are less than it.  Divide count by number of randomizations to get the FDR.
+ 1. If given geneset has a positive es value, count the number of random es values are greater than it.  Divide count by number of randomizations to get the FDR.
+ 
+ ### Load in Randomization results
+```{r}
+rand_directories <- list.files(path = rand_working_dir, pattern = "Rand")
+all_rand_es <- c()
+all_rand_nes <- c()
+
+for(i in 1:length(rand_directories)){
+    current_rand_files <- list.files(path = paste(rand_working_dir,rand_directories[i],sep="/"), pattern = "gsea_report_for_na_")
+    #restrict to just the xls file. 
+    current_rand_files <- current_rand_files[grep(current_rand_files, pattern="\\.xls")]
+    
+    #load the positive files
+    for(j in 1:length(current_rand_files)){
+          rand_results <- read.table(  paste(rand_working_dir,rand_directories[i],current_rand_files[j],sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+
+          es_values <- data.frame(rand_results$NAME, rand_results$ES)
+          nes_values <- data.frame(rand_results$NAME, rand_results$NES)
+          colnames(es_values)[2] <- current_rand_files[j]
+          colnames(nes_values)[2] <- current_rand_files[j]
+          #add es_values to set.
+          if(i == 1 && j ==1 ){
+            all_rand_es <- es_values
+            all_rand_nes <- nes_values
+          } else{
+            all_rand_es <- merge(all_rand_es, es_values,by.x = 1,by.y = 1, all = TRUE)
+            all_rand_nes <- merge(all_rand_nes, nes_values,by.x = 1,by.y = 1, all = TRUE)
+          }
+      
+    }
+}
+```
+
+###Load in the real rankings
+```{r}
+ gsea_directory <- list.files(path = rand_working_dir, pattern = "Mesen_vs_Immuno_gsrand")
+gsea_results_files <- list.files(path = paste(rand_working_dir,gsea_directory,sep="/"), pattern = "gsea_report_for_na_")
+gsea_results_files<- gsea_results_files[grep(gsea_results_files, pattern="\\.xls")]
+actual_gsea_results <- c()
+    #load the positive files
+    for(j in 1:length(gsea_results_files)){
+          actual_gsea_results_1 <-  read.table(  paste(rand_working_dir,gsea_directory,gsea_results_files[j],sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+            actual_gsea_results <- rbind(actual_gsea_results , actual_gsea_results_1)
+         
+}
+
+#calculate the new fdr values
+new_fdr <- c()
+for(m in 1:dim(actual_gsea_results)[1]){
+  current_data <- as.numeric(all_rand_es[which(all_rand_es$rand_results.NAME == actual_gsea_results$NAME[m]),2:2001])
+  if(actual_gsea_results$ES[m] < 0 ){
+    new_fdr <- c(new_fdr, length( which(current_data < actual_gsea_results$ES[m]))/1000)                           
+  } else {
+    new_fdr <- c(new_fdr, length( which(current_data > actual_gsea_results$ES[m]))/1000)  
+  }
+}
+
+#create a new fake enrichment results file so we can compare the differences.
+new_fdr_gsea_results_files <- actual_gsea_results
+new_fdr_gsea_results_files$FDR.q.val <- new_fdr
+  
+write.table(new_fdr_gsea_results_files , paste(rand_working_dir,"new_fdr_gsea_results_files_edger_rand.txt ",sep="/"), 
+            col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
+```
+
+## Create enrichment Map
+Manually created the Enrichment map with the 3 different analyses.  It was too difficult to create using cyrest because our manual phenotype randomization results needed to be hacked (created a dataset with GSEA results from phenorand and then substituted the fake GSEA results file we created in the previous step).  We can not use the mastermap command because of the 1000 gsea randomization results that are present in the directory.  
+
+How do we determine which method is the best?  It is a little subjective.  
+
+By the numbers only:
+(load in the GSEA results from each analysis and calculate how many sets pass significance)
+```{r}
+#load in gsrand
+gsea_directory <- list.files(path = rand_working_dir, pattern = "Mesen_vs_Immuno_gsrand")
+gsea_results_files <- list.files(path = paste(rand_working_dir,gsea_directory,sep="/"), pattern = "gsea_report_for_na_")
+gsea_results_files<- gsea_results_files[grep(gsea_results_files, pattern="\\.xls")]
+gsrand_gsea_results <- c()
+    #load the positive files
+    for(j in 1:length(gsea_results_files)){
+          gsrand_gsea_results_1 <-  read.table(  paste(rand_working_dir,gsea_directory,gsea_results_files[j],sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+            gsrand_gsea_results <- rbind(gsrand_gsea_results , gsrand_gsea_results_1)
+         
+    }
+
+#load in phenorand
+gsea_directory <- list.files(path = rand_working_dir, pattern = "Mesen_vs_Immuno_phenorand")
+gsea_results_files <- list.files(path = paste(rand_working_dir,gsea_directory,sep="/"), pattern = "gsea_report_for")
+gsea_results_files<- gsea_results_files[grep(gsea_results_files, pattern="\\.xls")]
+phenorand_gsea_results <- c()
+    #load the positive files
+    for(j in 1:length(gsea_results_files)){
+          phenorand_gsea_results_1 <-  read.table(  paste(rand_working_dir,gsea_directory,gsea_results_files[j],sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+            phenorand_gsea_results <- rbind(phenorand_gsea_results , phenorand_gsea_results_1)
+         
+}
+```
+
+Number of significant (FDR < 0.01) genesets by dataset:
+
+ 1. geneset randomizations - `r length(which(gsrand_gsea_results$FDR.q.val < 0.01))` genesets
+ 1. GSEA phenotype randomization (using signal 2 noise to compute differential expression) - `r length(which(phenorand_gsea_results$FDR.q.val < 0.01))` genesets
+ 1. phenotype randomization from R using edgeR for differential expression - `r length(which(new_fdr_gsea_results_files$FDR.q.val < 0.01))` genesets
+ 
+Plot the comparison of the FDR values using gsrand vs phenotype randomization from R using EdgeR
+```{r}
+plot(cbind(gsrand_gsea_results$FDR.q.val, new_fdr), ylab="edgeR randomization FDR", xlab="gs randomications FDR")
+```
+
+Create a subset of the above plot to include any genesets where the FDR is significant in at least one of the analyses
+
+There are quite a few discrpancies between the two methods:
+
+ 1. gs rand has `r dim(temp[which(temp[,1]<0.01 & temp[,2]>0.01),])[1]` genesets significant not found in eggeR randomization.
+ 1. edgeR randomizations has  `r dim(temp[which(temp[,1]>0.01 & temp[,2]<0.01),])[1]` genesets significant not found in gs rand.
+```{r}
+temp<- cbind(gsrand_gsea_results$FDR.q.val, new_fdr)
+
+plot(temp[which(temp[,1]<0.01 | temp[,2]<0.01),], ylab="edgeR randomization FDR", xlab="gs randomications FDR")
+```
+
+
+ 
+Venn Diagram of overlaps
+```{r}
+library(VennDiagram)
+three_method_overlap = paste(rand_working_dir,"3_results_overlap_v1.png",sep="/")
+png(three_method_overlap)
+  a <- gsrand_gsea_results$NAME[which(gsrand_gsea_results$FDR.q.val < 0.01)]
+  b <- phenorand_gsea_results$NAME[which(phenorand_gsea_results$FDR.q.val < 0.01)]
+  c <- new_fdr_gsea_results_files$NAME[which(new_fdr_gsea_results_files$FDR.q.val < 0.01)]
+draw.triple.venn(area1 = length(a), 
+                 area2 = length(b), 
+                 area3 = length(c), 
+                 n12 = length(intersect(a,b)), 
+                 n23 = length(intersect(b,c)), 
+                 n13 = length(intersect(a,c)), 
+                 n123 = length(intersect(a, intersect(b,c ))), 
+                 category = c("gsrand", "phenorand", "edgeR_rand"), lty = "blank", 
+    fill = c("skyblue", "pink1", "mediumorchid"))
+dev.off()
+```
+![Overlap of three methods](`r three_method_overlap`)
+
+
+## Trying to Quantify the difference between the methods 
+For this analysis we will use only:
+
+ 1. geneset randomizations - `r length(which(gsrand_gsea_results$FDR.q.val < 0.01))` genesets
+ 1. phenotype randomization from R using edgeR for differential expression - `r length(which(new_fdr_gsea_results_files$FDR.q.val < 0.01))` genesets
+ 
+ as phenotype randomizations does not compare to the above two.
+ 
+ Manually create all the networks:
+ 
+ 1. Enrichment map with both gsrand and edgeR rand methods
+ 1. Sub network with genesets unique to edgeR rand method
+ 1. Sub network with genesets unique to gs rand method
+ 1. Sub network with genesets significant in both edgeR and gs rand methods
+ 1. Sub network with geneset significant in edgeR rand
+ 1. Sub network with genesets signifincant in gs rand method.
+ 
+ Method to assess the difference between methods:
+ 
+ 1. cluster method 1 network
+ 1. cluster method 2 network
+ 1. Find all nodes in method 1 that are not in method 2
+ 1. highlight complete clusters in each method that are completely unique to the method (i.e. non of it members are found in the other method)
+ 1. And vice version with method2 vs method1
+ 
+ 
+ 
+```{r}
+#for communicating with cytoscape cyrest
+library(RJSONIO)
+library(httr)
+
+#use easy cyRest library to communicate with cytoscape.
+tryCatch(expr = { library(devtools)}, 
+         error = function(e) { install.packages("devtools")}, finally = library(devtools))
+tryCatch(expr = { library(r2cytoscape)}, 
+          error = function(e) { install_github('cytoscape/cytoscape-automation/for-scripters/R/r2cytoscape')}, finally = library(r2cytoscape))
+
+
+## Initialize Cytoscape
+# Basic settings
+port.number = 1234
+base.url = paste("http://localhost:", toString(port.number), "/v1", sep="")
+
+print(base.url)
+
+version.url = paste(base.url, "version", sep="/")
+cytoscape.version = GET(version.url)
+cy.version = fromJSON(rawToChar(cytoscape.version$content))
+print(cy.version)
+
+#get the network names and suids
+network.names.url <- paste(base.url, "networks.names",sep="/")
+network.names.response <- GET(network.names.url)
+
+network.names.response <- fromJSON(content(GET(url=network.names.url), "text", encoding = "ISO-8859-1"))
+network.names <-  as.data.frame(t(matrix(unlist(network.names.response), nrow=length(unlist(network.names.response[1])))))
+colnames(network.names) <- names(network.names.response[[1]])
+```
+
+Define the parameters
+```{r}
+main_network <- "only_gsrand"
+comparison_network <- "only_edgeR_rand"
+```
+
+Cluster main network
+```{r}
+main_network_suid <- network.names$SUID[which(network.names$name == main_network)]
+
+#make sure it is set to the right network
+setCurrentNetwork(network = main_network)
+
+#get the column from the nodetable and edge table
+edgetable_columnnames_url <- paste(base.url, "networks",main_network_suid,"tables", "defaultedge","columns",sep="/")
+edgetable_colnames_response <- fromJSON(content(GET(url=edgetable_columnnames_url), "text", encoding = "ISO-8859-1"))
+edgetable_colnames <-  as.data.frame(t(matrix(unlist(edgetable_colnames_response), nrow=length(unlist(edgetable_colnames_response[1])))))
+colnames(edgetable_colnames) <- names(edgetable_colnames_response[[1]])
+
+#get the correct attribute names
+similarity_attrib <- edgetable_colnames$name[grep(edgetable_colnames$name, pattern = "similarity_coefficient")]
+
+
+#cluster the network
+clustermaker.url <- paste(base.url, "commands","cluster","mcl", sep="/") 
+
+clustermaker_params <- list(attribute = similarity_attrib)
+
+#in the later version of clustermaker there are no parameters that can be supplied to mcl
+response <- GET(url=clustermaker.url, query=clustermaker_params)
+#response <- GET(url=clustermaker.url)
+
+content(response, "text", encoding = "ISO-8859-1")
+```
+```{r}
+
+#get the column from the nodetable and node table
+nodetable_columnnames_url <- paste(base.url, "networks",main_network_suid,"tables", "defaultnode","columns",sep="/")
+nodetable_colnames_response <- fromJSON(content(GET(url=nodetable_columnnames_url), "text", encoding = "ISO-8859-1"))
+nodetable_colnames <-  as.data.frame(t(matrix(unlist(nodetable_colnames_response), nrow=length(unlist(nodetable_colnames_response[1])))))
+colnames(nodetable_colnames) <- names(nodetable_colnames_response[[1]])
+
+gettable.url <-  paste(base.url, "networks",main_network_suid,"tables","defaultnode", sep="/") 
+#returns the node table as part of data structure containing SSUID, title, public, 
+# mutable, primary key and rows
+node_table_info <- fromJSON(content(GET(url=gettable.url), "text", encoding = "ISO-8859-1"))
+default_node_table <- node_table_info$rows
+
+
+descr_attrib <- nodetable_colnames$name[grep(nodetable_colnames$name, pattern = "_GS_DESCR")]
+
+clusternumbers <- unlist(lapply(default_node_table, 
+                                function (x) {unlist(x); 
+                                        if("__mclCluster" %in% names(x))
+                                            {x['__mclCluster']}
+                                        else{0}}))
+
+em_names <- unlist(lapply(default_node_table, 
+                                function (x) {unlist(x); 
+                                        if("name" %in% names(x))
+                                            {x['name']}
+                                        else{''}}))
+
+em_descr <- unlist(lapply(default_node_table, 
+                                function (x) {unlist(x); 
+                                        if(descr_attrib %in% names(x))
+                                            {x[which(names(x) == descr_attrib)]}
+                                        else{''}}))
+
+
+
+#get the node "EM1_GS_DESCR" to use with autoannotate to get rid of the issue with 
+#colons in the node names not working
+node_descr <- em_descr
+names(node_descr) <-em_names
+
+names(clusternumbers) <- em_names
+set_clusters <- unique(clusternumbers)
+set_clusters <- set_clusters[which(set_clusters != 0)]
+```
+
+Cluster comparison network 
+
+```{r}
+comparison_network_suid <- network.names$SUID[which(network.names$name == comparison_network)]
+
+#make sure it is set to the right network
+setCurrentNetwork(network = comparison_network)
+
+#get the column from the nodetable and edge table
+edgetable_columnnames_url <- paste(base.url, "networks",comparison_network_suid,"tables", "defaultedge","columns",sep="/")
+edgetable_colnames_response <- fromJSON(content(GET(url=edgetable_columnnames_url), "text", encoding = "ISO-8859-1"))
+edgetable_colnames <-  as.data.frame(t(matrix(unlist(edgetable_colnames_response), nrow=length(unlist(edgetable_colnames_response[1])))))
+colnames(edgetable_colnames) <- names(edgetable_colnames_response[[1]])
+
+#get the correct attribute names
+similarity_attrib <- edgetable_colnames$name[grep(edgetable_colnames$name, pattern = "similarity_coefficient")]
+
+
+#cluster the network
+clustermaker.url <- paste(base.url, "commands","cluster","mcl", sep="/") 
+
+clustermaker_params <- list(attribute = similarity_attrib)
+
+#in the later version of clustermaker there are no parameters that can be supplied to mcl
+response <- GET(url=clustermaker.url, query=clustermaker_params)
+#response <- GET(url=clustermaker.url)
+
+content(response, "text", encoding = "ISO-8859-1")
+```
+
+```{r}
+
+#get the column from the nodetable and node table
+nodetable_columnnames_url <- paste(base.url, "networks",comparison_network_suid,"tables", "defaultnode","columns",sep="/")
+nodetable_colnames_response <- fromJSON(content(GET(url=nodetable_columnnames_url), "text", encoding = "ISO-8859-1"))
+nodetable_colnames <-  as.data.frame(t(matrix(unlist(nodetable_colnames_response), nrow=length(unlist(nodetable_colnames_response[1])))))
+colnames(nodetable_colnames) <- names(nodetable_colnames_response[[1]])
+
+gettable.url <-  paste(base.url, "networks",comparison_network_suid,"tables","defaultnode", sep="/") 
+#returns the node table as part of data structure containing SSUID, title, public, 
+# mutable, primary key and rows
+node_table_info <- fromJSON(content(GET(url=gettable.url), "text", encoding = "ISO-8859-1"))
+default_node_table <- node_table_info$rows
+
+
+descr_attrib <- nodetable_colnames$name[grep(nodetable_colnames$name, pattern = "_GS_DESCR")]
+
+clusternumbers_comparison <- unlist(lapply(default_node_table, 
+                                function (x) {unlist(x); 
+                                        if("__mclCluster" %in% names(x))
+                                            {x['__mclCluster']}
+                                        else{0}}))
+
+em_names_comparison <- unlist(lapply(default_node_table, 
+                                function (x) {unlist(x); 
+                                        if("name" %in% names(x))
+                                            {x['name']}
+                                        else{''}}))
+
+em_descr_comparison <- unlist(lapply(default_node_table, 
+                                function (x) {unlist(x); 
+                                        if(descr_attrib %in% names(x))
+                                            {x[which(names(x) == descr_attrib)]}
+                                        else{''}}))
+
+
+names(clusternumbers_comparison) <- em_names_comparison
+set_clusters_comparison <- unique(clusternumbers_comparison)
+set_clusters_comparison <- set_clusters_comparison[which(set_clusters_comparison != 0)]
+
+#get the node "EM1_GS_DESCR" to use with autoannotate to get rid of the issue with 
+#colons in the node names not working
+node_descr_comparison <- em_descr_comparison
+names(node_descr_comparison) <-em_names_comparison
+```
+
+To compare the two results:
+ 
+ 1. Get all the nodes that are not found in the other network
+ 1. Get the cluster they belong to.
+ 1. Go through each cluster that has a member not found in the other network.
+   1. Get all the nodes that are part of the cluster
+   1. Check to see how many of the cluster's nodes are in the other network
+   1. If none of the current clusters nodes are in the other network then mark the current cluster as of interest
+
+
+## Compute the unique clusters in edgeR randomization
+```{r}
+#make sure it is set to the right network
+setCurrentNetwork(network = comparison_network)
+
+unique_clusters <- c()
+
+#Only look at nodes that are not found in the other network.  
+# Check to see if the entire cluster is missing from the other network or if it is just a one off
+not_in_other <- which(!names(clusternumbers_comparison) %in% names(clusternumbers))
+cluster_to_go_through <- unique(clusternumbers_comparison[not_in_other])
+for(i in 1:length(cluster_to_go_through)){
+  current_cluster <- cluster_to_go_through[i]   
+  current_nodes <- names(clusternumbers_comparison[which(clusternumbers_comparison == current_cluster)])
+  current_cluster_not_in_other <- which(!current_nodes %in% names(clusternumbers))
+  #if the entire cluster is not in the other network - annotate it.
+  if(length(current_nodes) == length(current_cluster_not_in_other)){
+    unique_clusters <- c(unique_clusters, current_cluster)
+  }
+}
+
+  
+```
+```{r}
+set_clusters <- unique_clusters
+cluster_names <- c()
+for(i in 1:length(set_clusters)){
+
+    current_cluster <- set_clusters[i]
+    gs_in_cluster <- names(clusternumbers_comparison)[which(clusternumbers_comparison == current_cluster)]
+    
+    #for this cluster of gs get the gs descr to use in defining in autoannotate
+    gs_in_cluster_descr <- node_descr_comparison[which(names(node_descr_comparison) %in% gs_in_cluster)]
+    descr_aa <- paste(descr_attrib, gs_in_cluster_descr,sep=":")
+    
+    autoannotate.url <- paste(base.url, "commands","autoannotate",
+                              "label-clusterBoosted", sep="/") 
+
+    autoannotate_params <- list(labelColumn = descr_attrib, maxWords=3, 
+                                nodeList=paste(descr_aa,collapse=","))
+
+    response <- GET(url=autoannotate.url, query=autoannotate_params)
+    response
+    #something really weird happening with the AA commands.  
+    #All of a sudden there are html tags attached to them
+    # Haven't changed the AA version.  Not  sure why it started 
+    #happening or if it is windows specific.
+    #get rid of the html open tags
+    current_name <- strsplit(content(response, "text", encoding = "ISO-8859-1"), ">")[[1]][2]
+    #get rid of the html close tags
+    current_name <- strsplit(current_name, "<")[[1]][1]
+    
+    #current_name <- gsub("\nFinished\n","",content(response, "text", encoding = "ISO-8859-1"))
+  #get the average NES values for the pathways in this cluster
+    
+
+   cluster_names <- rbind(cluster_names, c(current_cluster,current_name, length(gs_in_cluster),mean(new_fdr_gsea_results_files$NES[which(gsrand_gsea_results$NAME %in% gs_in_cluster)]),
+                                           paste(gs_in_cluster,collapse=";")))
+}
+#cluster_names
+colnames(cluster_names) <- c("cluster_num","label", "number of nodes","mean NES", "node labels")
+```
+
+## Output the clusters that are unique to manual randomizations
+A cluster is only considered unique to the method if none of its members are present in the other method network.  
+
+Of the `r length(not_in_other)` nodes not found in manual edgeR randomizations from `r length(cluster_to_go_through)` clusters (In this set are included the singletons nodes all grouped together in one cluster.  They do not factor into this analysis).  There are `r length(unique_clusters)` unique clusters in the edgeR randomization method.
+```{r results="asis", echo=FALSE}
+print(xtable::xtable(cluster_names[order(as.numeric(cluster_names[,3]), decreasing = TRUE),2:4], caption="Clusters unique to edgeR manual randomization",align = c("c","c","c","l")),type="html", html.table.attributes = 'border=1 align="center"', include.rownames=FALSE)
+```
+## Compute the unique clusters in gs randomization
+```{r}
+#make sure it is set to the right network
+setCurrentNetwork(network = main_network)
+
+unique_clusters_gs <- c()
+
+#Only look at nodes that are not found in the other network.  
+# Check to see if the entire cluster is missing from the other network or if it is just a one off
+not_in_other_gs <- which(!names(clusternumbers) %in% names(clusternumbers_comparison))
+cluster_to_go_through_gs <- unique(clusternumbers[not_in_other_gs])
+for(i in 1:length(cluster_to_go_through_gs)){
+  current_cluster <- cluster_to_go_through_gs[i]   
+  current_nodes <- names(clusternumbers[which(clusternumbers == current_cluster)])
+  current_cluster_not_in_other <- which(!current_nodes %in% names(clusternumbers_comparison))
+  #if the entire cluster is not in the other network - annotate it.
+  if(length(current_nodes) == length(current_cluster_not_in_other)){
+    unique_clusters_gs <- c(unique_clusters_gs, current_cluster)
+  }
+}
+
+  
+```
+
+```{r}
+set_clusters <- unique_clusters_gs
+cluster_names_gs <- c()
+for(i in 1:length(set_clusters)){
+
+    current_cluster <- set_clusters[i]
+    gs_in_cluster <- names(clusternumbers)[which(clusternumbers == current_cluster)]
+    
+    #for this cluster of gs get the gs descr to use in defining in autoannotate
+    gs_in_cluster_descr <- node_descr[which(names(node_descr) %in% gs_in_cluster)]
+    descr_aa <- paste(descr_attrib, gs_in_cluster_descr,sep=":")
+    
+    autoannotate.url <- paste(base.url, "commands","autoannotate",
+                              "label-clusterBoosted", sep="/") 
+
+    autoannotate_params <- list(labelColumn = descr_attrib, maxWords=3, 
+                                nodeList=paste(descr_aa,collapse=","))
+
+    response <- GET(url=autoannotate.url, query=autoannotate_params)
+    response
+    #something really weird happening with the AA commands.  
+    #All of a sudden there are html tags attached to them
+    # Haven't changed the AA version.  Not  sure why it started 
+    #happening or if it is windows specific.
+    #get rid of the html open tags
+    current_name <- strsplit(content(response, "text", encoding = "ISO-8859-1"), ">")[[1]][2]
+    #get rid of the html close tags
+    current_name <- strsplit(current_name, "<")[[1]][1]
+    
+    #current_name <- gsub("\nFinished\n","",content(response, "text", encoding = "ISO-8859-1"))
+
+  #get the average NES values for the pathways in this cluster
+    mean(gsrand_gsea_results$NES[which(gsrand_gsea_results$NAME %in% gs_in_cluster)])
+    
+   cluster_names_gs <- rbind(cluster_names_gs, c(current_cluster,current_name, length(gs_in_cluster), mean(gsrand_gsea_results$NES[which(gsrand_gsea_results$NAME %in% gs_in_cluster)]),
+                                           paste(gs_in_cluster,collapse=";")))
+}
+#cluster_names
+colnames(cluster_names_gs) <- c("cluster_num","label", "number of nodes","mean NES", "node labels")
+```
+
+## Output the clusters that are unique to gs randomizations
+A cluster is only considered unique to the method if none of its members are present in the other method network.  
+
+Of the `r length(not_in_other_gs)` nodes not found in manual edgeR randomizations from `r length(cluster_to_go_through_gs)` clusters (In this set are included the singletons nodes all grouped together in one cluster.  They do not factor into this analysis).  There are `r length(unique_clusters_gs)` unique clusters in the edgeR randomization method.
+```{r results="asis", echo=FALSE}
+print(xtable::xtable(cluster_names_gs[order(as.numeric(cluster_names_gs[,3]), decreasing = TRUE),2:4], caption="Clusters unique to gs randomization",align = c("c","c","c","c")),type="html", html.table.attributes = 'border=1 align="center"', include.rownames=FALSE)
+```
