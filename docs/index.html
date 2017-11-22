@@ -10,7 +10,61 @@
 <meta name="author" content=“Ruth Isserlin“ />
  
 </head>
-<a href="Protocol2_createEM.html"> Protocol 2 - create Enrichment Map</a>
+
+<body>
+
+<style type="text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+<div class="container-fluid main-container">
+
+<h1 class="title toc-ignore">Cytoscape Workflows</h1>
+<h4 class="author"><em>Ruth Isserlin</em></h4>
+
+<div id="Enrichment Map Pipeline" class="section level3">
+<p>Set of R notebooks to transform expression data to a ranked list and run them through Pathay enrichment pipeline. Pathway enrichment analysis helps gain mechanistic insight into large gene lists typically resulting from genome scale (–omics) experiments. It identifies biological pathways that are enriched in the gene list more than expected by chance. We explain pathway enrichment analysis and present a practical step-by-step guide to help interpret gene lists. The protocol is designed for biologists with no prior bioinformatics training and uses freely available software including g:Profiler, GSEA, Cytoscape and Enrichment Map.</p>
+
+<p> The main protocol involves translating a ranked list to an Enrichment map.  The figure below outlines the main steps.</p>
+<img src="images/Figure1_Protocol_Flow_Chart.jpg">
+
+<div id="table-of-contents" class="section level3">
+<h3>Table of contents</h3>
+<ul>
+<li>
+<a href="EnrichmentMapPipeline/Download_TCGA_data.nb.html"> Download TCGA data </a> - R notebook shows you how to download legacy microarray and rnaseq ovarian cancer data.  The notebook can be modified to download any data from GDC
+</li>
+<li>
+<a href="EnrichmentMapPipeline/supplemental_protocol1_rnaseq.html"> Supplemental Protocol 1 </a>- convert raw RNASeq expression data to a ranked list
+</li>
+<li>
+<a href="EnrichmentMapPipeline/supplemental_protocol2_microarray.html"> Supplemental Protocol 2 </a> - convert RMA normalized microarray expression data to a ranked list
+</li>
+<li>
+<a href="EnrichmentMapPipeline/Protocol2_createEM.html"> Protocol 2 </a>- run GSEA on ranked list and automatically create an Enrichment Map from the results.
+</li>
+</ul>
+</div>
+
+
 
 <p>See the <a href=“https://github.com/BaderLab/Cytoscape_workflows>GitHub repository</a> for the source. See the <a href="http://rmarkdown.rstudio.com/">R Markdown documentation</a> if you want to do more.</p>
 </div>
