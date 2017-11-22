@@ -1,37 +1,15 @@
-## Welcome to GitHub Pages
+## Cytoscape WorkFlows
 
-You can use the [editor on GitHub](https://github.com/BaderLab/Cytoscape_workflows/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+Collection of workflows as R Notebooks that use functionaility in R to process data and cyRest to communicate directly with Cytoscape.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+# Enrichment Map Pipeline
+Set of R notebooks to transform expression data to a ranked list and run them through Pathay enrichment pipeline. Pathway enrichment analysis helps gain mechanistic insight into large gene lists typically resulting from genome scale (–omics) experiments. It identifies biological pathways that are enriched in the gene list more than expected by chance. We explain pathway enrichment analysis and present a practical step-by-step guide to help interpret gene lists. The protocol is designed for biologists with no prior bioinformatics training and uses freely available software including g:Profiler, GSEA, Cytoscape and Enrichment Map.
 
-### Markdown
+## Main Pipeline Steps
+ 1. [Protocol 2 - Create Enrichment Map](https://github.com/BaderLab/Cytoscape_workflows/EnrichmentMapPipeline/Protocol2_createEM.html)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+# Cell Cell Interactions Workflow
 
-```markdown
-Syntax highlighted code block
+Using a set of proteins designated as receptors, and ligands defined with a set of GO terms calculate the set of interactions that represent cell-cell interactions (for example Ligand-receptor, receptor-receptor, ...). This analysis is not limited to Cell-Cell interactions. You can define your own protein types, either manually or by choosing different go terms, and create your customized protein-protein interaction network.
 
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/BaderLab/Cytoscape_workflows/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+[editor on GitHub](https://github.com/BaderLab/Cytoscape_workflows/edit/master/README.md)
