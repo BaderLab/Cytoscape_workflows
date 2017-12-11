@@ -1,0 +1,25 @@
+name: "Enrichment Map Protocol"
+navbar:
+  title: "Enrichment Map Protocol"
+  type: inverse
+  left:
+    - text: "Home"
+      icon: fa-home
+      href: index.html
+    - text: "About"
+      icon: fa-info
+      href: http://www.baderlab.org/Software/EnrichmentMap
+    - text: "More"
+      icon: fa-gear
+      menu:
+        - text: "Supplementary Protocols"
+        - text: "Download TCGA Data"
+          href: Download_TCGA_data.html
+        - text: "Process RNASeq data"
+          href: supplemental_protocol1_rnaseq.html
+        - text: "Process Microarray data"
+          href: supplemental_protocol2_microarray.html
+        - text: "---------"
+        - text: "Protocol 2"
+        - text: "Create Enrichment Map"
+          href: Protocol2_createEM.html
