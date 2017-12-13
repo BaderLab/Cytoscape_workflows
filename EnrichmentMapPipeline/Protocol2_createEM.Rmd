@@ -3,18 +3,17 @@ title: "Enrichment Map Analysis Pipeline"
 author: "Ruth Isserlin"
 date: '`r format(Sys.Date())`'
 output:
-  html_notebook:
-    highligh: haddock
-    number_sections: yes
+  html_document:
     theme: paper
+    highligh: haddock
+    keep_md: yes
+    number_sections: yes
     toc: yes
-    toc_depth: 3
     toc_float:
       collapsed: no
       smooth_scroll: no
-  html_document:
+  html_notebook:
     highligh: haddock
-    keep_md: yes
     number_sections: yes
     theme: paper
     toc: yes

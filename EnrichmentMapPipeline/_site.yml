@@ -5,12 +5,12 @@ navbar:
   left:
     - text: "Home"
       icon: fa-home
-      href: index.html
+      href: https://baderlab.github.io/Cytoscape_workflows/
     - text: "bioRxiv paper"
       icon: fa-newspaper-o
       href: https://www.biorxiv.org/content/early/2017/12/12/232835
-    - text: "More"
-      icon: fa-gear
+    - text: "Table of Contents"
+      icon: fa-list
       menu:
         - text: "Supplementary Protocols"
         - text: "Download TCGA Data"

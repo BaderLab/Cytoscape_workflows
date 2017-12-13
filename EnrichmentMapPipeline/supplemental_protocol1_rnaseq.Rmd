@@ -30,6 +30,8 @@ This part of the supplementary protocol demonstrates filtering and scoring RNA-S
 ## Load required packages
 1. Load required Bioconductor packages into R. 
 ```{r}
+knitr::opts_knit$set(cache = TRUE)
+
 tryCatch(expr = { library("edgeR")}, 
          error = function(e) { 
            source("https://bioconductor.org/biocLite.R")
@@ -199,6 +201,10 @@ write.table(ranks_RNAseq, paste(working_dir,"Supplementary_Table2_MesenvsImmuno_
 
 9a. Create an expression file for the enrichment map and save it to a file in the working folder. The optional expression file is similar to the expression matrix except for an additional column on the left edge of the matrix. The field often includes gene description however any text value can be added.
 ```{r, message=FALSE, warning=FALSE}
+
+#fix issue with biomart not working because of url redirection
+options(RCurlOptions=list(followlocation=TRUE, postredir=2L))
+
 normalized_expression_RNAseq <- cpm(d, normalized.lib.size=TRUE)
 
 #From the rownames parse out the gene name and the geneids
@@ -217,7 +223,7 @@ tryCatch(expr = { library("biomaRt")},
            source("https://bioconductor.org/biocLite.R")
            biocLite("biomaRt")}, 
          finally = library("biomaRt"))
-mart = useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
+mart = useMart(biomart="ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl")
 
 genes = getBM(attributes = c( 'hgnc_symbol', 'description'), filters='hgnc_symbol', 
               values=genenames, mart=mart);

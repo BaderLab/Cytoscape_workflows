@@ -11,7 +11,7 @@
 
 <meta name="author" content="Ruth Isserlin" />
 
-<meta name="date" content="2017-12-12" />
+<meta name="date" content="2017-12-13" />
 
 <title>Enrichment Map Analysis Pipeline</title>
 
@@ -306,7 +306,7 @@ div.tocify {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">
+  <a href="https://baderlab.github.io/Cytoscape_workflows/">
     <span class="fa fa-home"></span>
      
     Home
@@ -321,9 +321,9 @@ div.tocify {
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
-    <span class="fa fa-gear"></span>
+    <span class="fa fa-list"></span>
      
-    More
+    Table of Contents
      
     <span class="caret"></span>
   </a>
@@ -359,7 +359,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Enrichment Map Analysis Pipeline</h1>
 <h4 class="author"><em>Ruth Isserlin</em></h4>
-<h4 class="date"><em>2017-12-12</em></h4>
+<h4 class="date"><em>2017-12-13</em></h4>
 
 </div>
 
@@ -572,7 +572,7 @@ cytoscape.open =<span class="st"> </span><span class="ot">TRUE</span>
 <span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">GET</span>(version.url)}, 
          <span class="dt">error =</span> function(e) { <span class="kw">return</span> (<span class="dt">cytoscape.open =</span> <span class="ot">FALSE</span>)}, <span class="dt">finally =</span>function(r){ <span class="kw">return</span>(<span class="dt">cytoscape.open =</span> <span class="ot">TRUE</span>)})</code></pre></div>
 <pre><code>## Response [http://localhost:1234/v1/version]
-##   Date: 2017-12-12 15:17
+##   Date: 2017-12-13 11:36
 ##   Status: 200
 ##   Content-Type: application/json
 ##   Size: 46 B</code></pre>
@@ -606,7 +606,7 @@ cytoscape.open =<span class="st"> </span><span class="ot">TRUE</span>
 ## Attaching package: &#39;EasycyRest&#39;</code></pre>
 <pre><code>## The following objects are masked from &#39;package:r2cytoscape&#39;:
 ## 
-##     createNetwork, createStyle, getNodeTable, renameNetwork</code></pre>
+##     createNetwork, createStyle</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#defined threshold for GSEA enrichments (need to be strings for cyrest call)</span>
 pvalue_gsea_threshold &lt;-<span class="st"> &quot;1.0&quot;</span>
 qvalue_gsea_threshold &lt;-<span class="st"> &quot;0.01&quot;</span>
