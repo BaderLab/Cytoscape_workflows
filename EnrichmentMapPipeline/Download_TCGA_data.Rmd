@@ -3,8 +3,9 @@ title: "Download TCGA Ovarian Serous Cystadenocarcinoma Data from GDC Portal"
 author: "Ruth Isserlin"
 date: '`r format(Sys.Date())`'
 output:
-  html_notebook:
+  html_document:
     highligh: haddock
+    keep_md: yes
     number_sections: yes
     theme: paper
     toc: yes
@@ -12,9 +13,8 @@ output:
     toc_float:
       collapsed: no
       smooth_scroll: no
-  html_document:
+  html_notebook:
     highligh: haddock
-    keep_md: yes
     number_sections: yes
     theme: paper
     toc: yes
@@ -50,7 +50,7 @@ classDefinitions_verhaak <-  read.table( "data/Verhaak_supplementary_table1_OV_s
 
 ## Download and format TCGA OV microarray data
 
-```{r, eval=FALSE, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 #try and download the microarray expressions data.
 query_microarray <- GDCquery(project = "TCGA-OV", 
                    data.category = "Gene expression",
@@ -104,7 +104,7 @@ write.table(microarrayPatients,"./data/Supplementary_Table11_Microarray_classdef
 ## Download and format TCGA OV RNASeq data
 Sometimes the server times out.  If you initially get an error try running this block over.  
 Also, if you have run the above code immediately before this section the tar file will have the same name but a different format.  Try deleting all tar files in the directory and re-run.
-```{r, eval=FALSE}
+```{r}
   query <- GDCquery(project = "TCGA-OV", 
                    data.category = "Gene expression",
                    data.type = "Gene expression quantification",
