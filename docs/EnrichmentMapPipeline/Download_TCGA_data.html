@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Ruth Isserlin" />
+
+<meta name="date" content="2017-12-13" />
+
+<title>Download TCGA Ovarian Serous Cystadenocarcinoma Data from GDC Portal</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/paper.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #0000ff; } /* Keyword */
+code > span.ch { color: #008080; } /* Char */
+code > span.st { color: #008080; } /* String */
+code > span.co { color: #008000; } /* Comment */
+code > span.ot { color: #ff4000; } /* Other */
+code > span.al { color: #ff0000; } /* Alert */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #008000; font-weight: bold; } /* Warning */
+code > span.cn { } /* Constant */
+code > span.sc { color: #008080; } /* SpecialChar */
+code > span.vs { color: #008080; } /* VerbatimString */
+code > span.ss { color: #008080; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { } /* Variable */
+code > span.cf { color: #0000ff; } /* ControlFlow */
+code > span.op { } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #ff4000; } /* Preprocessor */
+code > span.do { color: #008000; } /* Documentation */
+code > span.an { color: #008000; } /* Annotation */
+code > span.cv { color: #008000; } /* CommentVar */
+code > span.at { } /* Attribute */
+code > span.in { color: #008000; } /* Information */
+</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 64px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+
+.section h2 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h3 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h4 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h5 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h6 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = false;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-inverse  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Enrichment Map Protocol</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="https://baderlab.github.io/Cytoscape_workflows/">
+    <span class="fa fa-home"></span>
+     
+    Home
+  </a>
+</li>
+<li>
+  <a href="https://www.biorxiv.org/content/early/2017/12/12/232835">
+    <span class="fa fa-newspaper-o"></span>
+     
+    bioRxiv paper
+  </a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    <span class="fa fa-list"></span>
+     
+    Table of Contents
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li class="dropdown-header">Supplementary Protocols</li>
+    <li>
+      <a href="Download_TCGA_data.html">Download TCGA Data</a>
+    </li>
+    <li>
+      <a href="supplemental_protocol1_rnaseq.html">Process RNASeq data</a>
+    </li>
+    <li>
+      <a href="supplemental_protocol2_microarray.html">Process Microarray data</a>
+    </li>
+    <li class="divider"></li>
+    <li class="dropdown-header">Protocol 2</li>
+    <li>
+      <a href="Protocol2_createEM.html">Create Enrichment Map</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Download TCGA Ovarian Serous Cystadenocarcinoma Data from GDC Portal</h1>
+<h4 class="author"><em>Ruth Isserlin</em></h4>
+<h4 class="date"><em>2017-12-13</em></h4>
+
+</div>
+
+
+<div id="supplementary-protocol---data-download" class="section level1">
+<h1><span class="header-section-number">1</span> Supplementary Protocol - Data Download</h1>
+<p>This protocol processes RNA-seq data using the R programming environment and specialized packages from Bioconductor to create genes lists. The scripts are available for download and novice users can copy and paste commands into R console. To create gene expression data for Protocol 1B, we downloaded gene expression data from the Ovarian Serous Cystadenocarcinoma project of The Cancer Genome Atlas (TCGA), <a href="http://cancergenome.nih.gov" class="uri">http://cancergenome.nih.gov</a> via the Genomic Data Commons (GDC) portal on 2017-06-14 using TCGABiolinks R package. The dataset includes 544 samples available as RMA-normalized microarray data (Affymetrix HG-U133A), and 309 samples available as RNA-seq data, with reads mapped to a reference genome using MapSplice58 and read counts per transcript determined using the RSEM method59. RNA-seq data are labeled in the dataset as ‘RNA-Seq V2’, see details at: <a href="https://wiki.nci.nih.gov/display/TCGA/RNA-Seq+Version+2" class="uri">https://wiki.nci.nih.gov/display/TCGA/RNA-Seq+Version+2</a>). The RNA-SeqV2 dataset consists of raw counts similar to regular RNA-seq but RSEM data can be used with the edgeR method.</p>
+<p>TCGABiolinks R package allows users to download raw or scored data directly from GDC portal. Both new datasets as well as legacy TCGA data are available for downlod</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#for the latest version install from github</span>
+<span class="co">#devtools::install_github(repo = &quot;BioinformaticsFMRP/TCGAbiolinks&quot;)</span>
+<span class="co">#source(&quot;https://bioconductor.org/biocLite.R&quot;)</span>
+<span class="co">#biocLite(&quot;TCGAbiolinks&quot;)</span>
+<span class="co">#make sure the version is at least or greater than 2.5.3</span>
+<span class="kw">library</span>(<span class="st">&quot;TCGAbiolinks&quot;</span>)
+<span class="kw">library</span>(<span class="st">&quot;SummarizedExperiment&quot;</span>)</code></pre></div>
+<div id="subtype-definitions" class="section level2">
+<h2><span class="header-section-number">1.1</span> subtype definitions</h2>
+<p>For our analysis we want to restrict the samples in our supplementary files to just a few subtypes but for a general analysis this is not required.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#load class definitions</span>
+classDefinitions_verhaak &lt;-<span class="st">  </span><span class="kw">read.table</span>( <span class="st">&quot;data/Verhaak_supplementary_table1_OV_subtypes.txt&quot;</span>, <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>,  <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</code></pre></div>
+</div>
+<div id="download-and-format-tcga-ov-microarray-data" class="section level2">
+<h2><span class="header-section-number">1.2</span> Download and format TCGA OV microarray data</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#try and download the microarray expressions data.</span>
+query_microarray &lt;-<span class="st"> </span><span class="kw">GDCquery</span>(<span class="dt">project =</span> <span class="st">&quot;TCGA-OV&quot;</span>, 
+                   <span class="dt">data.category =</span> <span class="st">&quot;Gene expression&quot;</span>,
+                   <span class="dt">data.type =</span> <span class="st">&quot;Gene expression quantification&quot;</span>,
+                   <span class="dt">platform =</span> <span class="st">&quot;HT_HG-U133A&quot;</span>,
+                   <span class="dt">access =</span> <span class="st">&quot;open&quot;</span>,
+                   <span class="dt">legacy =</span> <span class="ot">TRUE</span>)
+  <span class="kw">GDCdownload</span>(query_microarray )
+  OVMicroarray &lt;-<span class="st"> </span><span class="kw">GDCprepare</span>(query_microarray )</code></pre></div>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |                                                                 |   1%
+  |                                                                       
+  |=                                                                |   1%
+  |                                                                       
+  |=                                                                |   2%
+  |                                                                       
+  |==                                                               |   2%
+  |                                                                       
+  |==                                                               |   3%
+  |                                                                       
+  |==                                                               |   4%
+  |                                                                       
+  |===                                                              |   4%
+  |                                                                       
+  |===                                                              |   5%
+  |                                                                       
+  |====                                                             |   6%
+  |                                                                       
+  |====                                                             |   7%
+  |                                                                       
+  |=====                                                            |   7%
+  |                                                                       
+  |=====                                                            |   8%
+  |                                                                       
+  |======                                                           |   9%
+  |                                                                       
+  |======                                                           |  10%
+  |                                                                       
+  |=======                                                          |  10%
+  |                                                                       
+  |=======                                                          |  11%
+  |                                                                       
+  |========                                                         |  12%
+  |                                                                       
+  |========                                                         |  13%
+  |                                                                       
+  |=========                                                        |  13%
+  |                                                                       
+  |=========                                                        |  14%
+  |                                                                       
+  |=========                                                        |  15%
+  |                                                                       
+  |==========                                                       |  15%
+  |                                                                       
+  |==========                                                       |  16%
+  |                                                                       
+  |===========                                                      |  16%
+  |                                                                       
+  |===========                                                      |  17%
+  |                                                                       
+  |===========                                                      |  18%
+  |                                                                       
+  |============                                                     |  18%
+  |                                                                       
+  |============                                                     |  19%
+  |                                                                       
+  |=============                                                    |  19%
+  |                                                                       
+  |=============                                                    |  20%
+  |                                                                       
+  |=============                                                    |  21%
+  |                                                                       
+  |==============                                                   |  21%
+  |                                                                       
+  |==============                                                   |  22%
+  |                                                                       
+  |===============                                                  |  22%
+  |                                                                       
+  |===============                                                  |  23%
+  |                                                                       
+  |===============                                                  |  24%
+  |                                                                       
+  |================                                                 |  24%
+  |                                                                       
+  |================                                                 |  25%
+  |                                                                       
+  |=================                                                |  26%
+  |                                                                       
+  |=================                                                |  27%
+  |                                                                       
+  |==================                                               |  27%
+  |                                                                       
+  |==================                                               |  28%
+  |                                                                       
+  |===================                                              |  28%
+  |                                                                       
+  |===================                                              |  29%
+  |                                                                       
+  |===================                                              |  30%
+  |                                                                       
+  |====================                                             |  30%
+  |                                                                       
+  |====================                                             |  31%
+  |                                                                       
+  |=====================                                            |  32%
+  |                                                                       
+  |=====================                                            |  33%
+  |                                                                       
+  |======================                                           |  33%
+  |                                                                       
+  |======================                                           |  34%
+  |                                                                       
+  |======================                                           |  35%
+  |                                                                       
+  |=======================                                          |  35%
+  |                                                                       
+  |=======================                                          |  36%
+  |                                                                       
+  |========================                                         |  36%
+  |                                                                       
+  |========================                                         |  37%
+  |                                                                       
+  |========================                                         |  38%
+  |                                                                       
+  |=========================                                        |  38%
+  |                                                                       
+  |=========================                                        |  39%
+  |                                                                       
+  |==========================                                       |  39%
+  |                                                                       
+  |==========================                                       |  40%
+  |                                                                       
+  |==========================                                       |  41%
+  |                                                                       
+  |===========================                                      |  41%
+  |                                                                       
+  |===========================                                      |  42%
+  |                                                                       
+  |============================                                     |  42%
+  |                                                                       
+  |============================                                     |  43%
+  |                                                                       
+  |============================                                     |  44%
+  |                                                                       
+  |=============================                                    |  44%
+  |                                                                       
+  |=============================                                    |  45%
+  |                                                                       
+  |==============================                                   |  45%
+  |                                                                       
+  |==============================                                   |  46%
+  |                                                                       
+  |==============================                                   |  47%
+  |                                                                       
+  |===============================                                  |  47%
+  |                                                                       
+  |===============================                                  |  48%
+  |                                                                       
+  |================================                                 |  49%
+  |                                                                       
+  |================================                                 |  50%
+  |                                                                       
+  |=================================                                |  50%
+  |                                                                       
+  |=================================                                |  51%
+  |                                                                       
+  |==================================                               |  52%
+  |                                                                       
+  |==================================                               |  53%
+  |                                                                       
+  |===================================                              |  53%
+  |                                                                       
+  |===================================                              |  54%
+  |                                                                       
+  |===================================                              |  55%
+  |                                                                       
+  |====================================                             |  55%
+  |                                                                       
+  |====================================                             |  56%
+  |                                                                       
+  |=====================================                            |  56%
+  |                                                                       
+  |=====================================                            |  57%
+  |                                                                       
+  |=====================================                            |  58%
+  |                                                                       
+  |======================================                           |  58%
+  |                                                                       
+  |======================================                           |  59%
+  |                                                                       
+  |=======================================                          |  59%
+  |                                                                       
+  |=======================================                          |  60%
+  |                                                                       
+  |=======================================                          |  61%
+  |                                                                       
+  |========================================                         |  61%
+  |                                                                       
+  |========================================                         |  62%
+  |                                                                       
+  |=========================================                        |  62%
+  |                                                                       
+  |=========================================                        |  63%
+  |                                                                       
+  |=========================================                        |  64%
+  |                                                                       
+  |==========================================                       |  64%
+  |                                                                       
+  |==========================================                       |  65%
+  |                                                                       
+  |===========================================                      |  65%
+  |                                                                       
+  |===========================================                      |  66%
+  |                                                                       
+  |===========================================                      |  67%
+  |                                                                       
+  |============================================                     |  67%
+  |                                                                       
+  |============================================                     |  68%
+  |                                                                       
+  |=============================================                    |  69%
+  |                                                                       
+  |=============================================                    |  70%
+  |                                                                       
+  |==============================================                   |  70%
+  |                                                                       
+  |==============================================                   |  71%
+  |                                                                       
+  |==============================================                   |  72%
+  |                                                                       
+  |===============================================                  |  72%
+  |                                                                       
+  |===============================================                  |  73%
+  |                                                                       
+  |================================================                 |  73%
+  |                                                                       
+  |================================================                 |  74%
+  |                                                                       
+  |=================================================                |  75%
+  |                                                                       
+  |=================================================                |  76%
+  |                                                                       
+  |==================================================               |  76%
+  |                                                                       
+  |==================================================               |  77%
+  |                                                                       
+  |==================================================               |  78%
+  |                                                                       
+  |===================================================              |  78%
+  |                                                                       
+  |===================================================              |  79%
+  |                                                                       
+  |====================================================             |  79%
+  |                                                                       
+  |====================================================             |  80%
+  |                                                                       
+  |====================================================             |  81%
+  |                                                                       
+  |=====================================================            |  81%
+  |                                                                       
+  |=====================================================            |  82%
+  |                                                                       
+  |======================================================           |  82%
+  |                                                                       
+  |======================================================           |  83%
+  |                                                                       
+  |======================================================           |  84%
+  |                                                                       
+  |=======================================================          |  84%
+  |                                                                       
+  |=======================================================          |  85%
+  |                                                                       
+  |========================================================         |  85%
+  |                                                                       
+  |========================================================         |  86%
+  |                                                                       
+  |========================================================         |  87%
+  |                                                                       
+  |=========================================================        |  87%
+  |                                                                       
+  |=========================================================        |  88%
+  |                                                                       
+  |==========================================================       |  89%
+  |                                                                       
+  |==========================================================       |  90%
+  |                                                                       
+  |===========================================================      |  90%
+  |                                                                       
+  |===========================================================      |  91%
+  |                                                                       
+  |============================================================     |  92%
+  |                                                                       
+  |============================================================     |  93%
+  |                                                                       
+  |=============================================================    |  93%
+  |                                                                       
+  |=============================================================    |  94%
+  |                                                                       
+  |==============================================================   |  95%
+  |                                                                       
+  |==============================================================   |  96%
+  |                                                                       
+  |===============================================================  |  96%
+  |                                                                       
+  |===============================================================  |  97%
+  |                                                                       
+  |===============================================================  |  98%
+  |                                                                       
+  |================================================================ |  98%
+  |                                                                       
+  |================================================================ |  99%
+  |                                                                       
+  |=================================================================|  99%
+  |                                                                       
+  |=================================================================| 100%</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">microarray &lt;-<span class="st"> </span><span class="kw">assay</span>(OVMicroarray)
+
+<span class="co">#remove the duplicate genes and make gene names the matrix row names</span>
+microarray &lt;-<span class="st"> </span>microarray[<span class="kw">which</span>(!<span class="kw">duplicated</span>(<span class="kw">rownames</span>(microarray))),]
+
+
+<span class="co">#compute the 12 character barcode for each patients</span>
+microarrayPatients &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="kw">colnames</span>(microarray), <span class="kw">gsub</span>(<span class="st">&#39;</span><span class="ch">\\</span><span class="st">.&#39;</span>,<span class="st">&#39;-&#39;</span>,<span class="kw">substring</span>(<span class="kw">colnames</span>(microarray),<span class="dv">1</span>,<span class="dv">12</span>)))
+
+<span class="co">#only include patients that were included in Verhaak dataset</span>
+microarray &lt;-<span class="st"> </span>microarray[,<span class="kw">which</span>(microarrayPatients[,<span class="dv">2</span>] %in%<span class="st"> </span>classDefinitions_verhaak[<span class="kw">which</span>(!<span class="kw">is.na</span>(classDefinitions_verhaak$SUBTYPE)),<span class="st">&quot;ID&quot;</span>])]
+
+
+microarrayPatients &lt;-<span class="st"> </span><span class="kw">merge</span>(microarrayPatients,classDefinitions_verhaak[,<span class="kw">c</span>(<span class="st">&quot;ID&quot;</span>,<span class="st">&quot;SUBTYPE&quot;</span>)],<span class="dt">by.x =</span> <span class="dv">2</span>, <span class="dt">by.y =</span><span class="dv">1</span>)
+<span class="kw">colnames</span>(microarrayPatients) &lt;-<span class="st"> </span><span class="kw">c</span>( <span class="st">&quot;barcode&quot;</span>,<span class="st">&quot;patient&quot;</span>,<span class="st">&quot;SUBTYPE&quot;</span>)
+<span class="co">#only include patients that have microarray data for them</span>
+microarrayPatients &lt;-<span class="st"> </span>microarrayPatients[<span class="kw">which</span>(microarrayPatients$patient %in%<span class="st"> </span><span class="kw">colnames</span>(microarray)),]
+microarrayPatients &lt;-<span class="st"> </span>microarrayPatients[<span class="kw">order</span>(microarrayPatients$SUBTYPE),]
+
+<span class="co">#convert the barcodes so that they will be compatible with colnames (R doesn&#39;t like &quot;-&quot; in column names)</span>
+microarrayPatients$patient &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="st">&#39;-&#39;</span>,<span class="st">&#39;</span><span class="ch">\\</span><span class="st">.&#39;</span>,microarrayPatients$patient)
+<span class="kw">colnames</span>(microarray) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="st">&#39;-&#39;</span>,<span class="st">&#39;</span><span class="ch">\\</span><span class="st">.&#39;</span>,<span class="kw">colnames</span>(microarray))
+microarray &lt;-<span class="st"> </span>microarray[,<span class="kw">colnames</span>(microarray)[<span class="kw">order</span>(<span class="kw">match</span>(<span class="kw">colnames</span>(microarray),microarrayPatients$patient))]]</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">write.table</span>(microarray,<span class="st">&quot;./data/Supplementary_Table10_TCGA_Microarray_rmanormalized.txt&quot;</span>,<span class="dt">col.name=</span><span class="ot">TRUE</span>,<span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>,<span class="dt">row.names=</span><span class="ot">TRUE</span>,<span class="dt">quote=</span><span class="ot">FALSE</span>)
+
+<span class="kw">write.table</span>(microarrayPatients,<span class="st">&quot;./data/Supplementary_Table11_Microarray_classdefinitions.txt&quot;</span>,<span class="dt">col.name=</span><span class="ot">TRUE</span>,<span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>,<span class="dt">row.names=</span><span class="ot">TRUE</span>,<span class="dt">quote=</span><span class="ot">FALSE</span>)</code></pre></div>
+</div>
+<div id="download-and-format-tcga-ov-rnaseq-data" class="section level2">
+<h2><span class="header-section-number">1.3</span> Download and format TCGA OV RNASeq data</h2>
+<p>Sometimes the server times out. If you initially get an error try running this block over.<br />
+Also, if you have run the above code immediately before this section the tar file will have the same name but a different format. Try deleting all tar files in the directory and re-run.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">  query &lt;-<span class="st"> </span><span class="kw">GDCquery</span>(<span class="dt">project =</span> <span class="st">&quot;TCGA-OV&quot;</span>, 
+                   <span class="dt">data.category =</span> <span class="st">&quot;Gene expression&quot;</span>,
+                   <span class="dt">data.type =</span> <span class="st">&quot;Gene expression quantification&quot;</span>,
+                   <span class="dt">experimental.strategy =</span> <span class="st">&quot;RNA-Seq&quot;</span>,
+                   <span class="dt">platform =</span> <span class="st">&quot;Illumina HiSeq&quot;</span>,
+                   <span class="dt">access =</span> <span class="st">&quot;open&quot;</span>,
+                   <span class="dt">file.type =</span> <span class="st">&quot;results&quot;</span>,
+                   <span class="dt">legacy =</span> <span class="ot">TRUE</span>)</code></pre></div>
+<pre><code>## --------------------------------------</code></pre>
+<pre><code>## o GDCquery: Searching in GDC database</code></pre>
+<pre><code>## --------------------------------------</code></pre>
+<pre><code>## Genome of reference: hg19</code></pre>
+<pre><code>## --------------------------------------------</code></pre>
+<pre><code>## oo Accessing GDC. This might take a while...</code></pre>
+<pre><code>## --------------------------------------------</code></pre>
+<pre><code>## ooo Project: TCGA-OV</code></pre>
+<pre><code>## --------------------</code></pre>
+<pre><code>## oo Filtering results</code></pre>
+<pre><code>## --------------------</code></pre>
+<pre><code>## ooo By platform</code></pre>
+<pre><code>## ooo By access</code></pre>
+<pre><code>## ooo By experimental.strategy</code></pre>
+<pre><code>## ooo By data.type</code></pre>
+<pre><code>## ooo By file.type</code></pre>
+<pre><code>## ----------------</code></pre>
+<pre><code>## oo Checking data</code></pre>
+<pre><code>## ----------------</code></pre>
+<pre><code>## ooo Check if there are duplicated cases</code></pre>
+<pre><code>## ooo Check if there results for the query</code></pre>
+<pre><code>## -------------------</code></pre>
+<pre><code>## o Preparing output</code></pre>
+<pre><code>## -------------------</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">  <span class="kw">GDCdownload</span>(query)</code></pre></div>
+<pre><code>## Downloading data for project TCGA-OV</code></pre>
+<pre><code>## Of the 309 files for download 309 already exist.</code></pre>
+<pre><code>## All samples have been already downloaded</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">  OVRnaseqSE &lt;-<span class="st"> </span><span class="kw">GDCprepare</span>(query)</code></pre></div>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |                                                                 |   1%
+  |                                                                       
+  |=                                                                |   1%
+  |                                                                       
+  |=                                                                |   2%
+  |                                                                       
+  |==                                                               |   3%
+  |                                                                       
+  |==                                                               |   4%
+  |                                                                       
+  |===                                                              |   4%
+  |                                                                       
+  |===                                                              |   5%
+  |                                                                       
+  |====                                                             |   6%
+  |                                                                       
+  |====                                                             |   7%
+  |                                                                       
+  |=====                                                            |   7%
+  |                                                                       
+  |=====                                                            |   8%
+  |                                                                       
+  |======                                                           |   9%
+  |                                                                       
+  |======                                                           |  10%
+  |                                                                       
+  |=======                                                          |  10%
+  |                                                                       
+  |=======                                                          |  11%
+  |                                                                       
+  |========                                                         |  12%
+  |                                                                       
+  |========                                                         |  13%
+  |                                                                       
+  |=========                                                        |  13%
+  |                                                                       
+  |=========                                                        |  14%
+  |                                                                       
+  |=========                                                        |  15%
+  |                                                                       
+  |==========                                                       |  15%
+  |                                                                       
+  |==========                                                       |  16%
+  |                                                                       
+  |===========                                                      |  16%
+  |                                                                       
+  |===========                                                      |  17%
+  |                                                                       
+  |============                                                     |  18%
+  |                                                                       
+  |============                                                     |  19%
+  |                                                                       
+  |=============                                                    |  19%
+  |                                                                       
+  |=============                                                    |  20%
+  |                                                                       
+  |=============                                                    |  21%
+  |                                                                       
+  |==============                                                   |  21%
+  |                                                                       
+  |==============                                                   |  22%
+  |                                                                       
+  |===============                                                  |  22%
+  |                                                                       
+  |===============                                                  |  23%
+  |                                                                       
+  |===============                                                  |  24%
+  |                                                                       
+  |================                                                 |  24%
+  |                                                                       
+  |================                                                 |  25%
+  |                                                                       
+  |=================                                                |  26%
+  |                                                                       
+  |=================                                                |  27%
+  |                                                                       
+  |==================                                               |  27%
+  |                                                                       
+  |==================                                               |  28%
+  |                                                                       
+  |===================                                              |  28%
+  |                                                                       
+  |===================                                              |  29%
+  |                                                                       
+  |===================                                              |  30%
+  |                                                                       
+  |====================                                             |  30%
+  |                                                                       
+  |====================                                             |  31%
+  |                                                                       
+  |=====================                                            |  32%
+  |                                                                       
+  |=====================                                            |  33%
+  |                                                                       
+  |======================                                           |  33%
+  |                                                                       
+  |======================                                           |  34%
+  |                                                                       
+  |=======================                                          |  35%
+  |                                                                       
+  |=======================                                          |  36%
+  |                                                                       
+  |========================                                         |  36%
+  |                                                                       
+  |========================                                         |  37%
+  |                                                                       
+  |========================                                         |  38%
+  |                                                                       
+  |=========================                                        |  38%
+  |                                                                       
+  |=========================                                        |  39%
+  |                                                                       
+  |==========================                                       |  39%
+  |                                                                       
+  |==========================                                       |  40%
+  |                                                                       
+  |===========================                                      |  41%
+  |                                                                       
+  |===========================                                      |  42%
+  |                                                                       
+  |============================                                     |  42%
+  |                                                                       
+  |============================                                     |  43%
+  |                                                                       
+  |============================                                     |  44%
+  |                                                                       
+  |=============================                                    |  44%
+  |                                                                       
+  |=============================                                    |  45%
+  |                                                                       
+  |==============================                                   |  46%
+  |                                                                       
+  |==============================                                   |  47%
+  |                                                                       
+  |===============================                                  |  47%
+  |                                                                       
+  |===============================                                  |  48%
+  |                                                                       
+  |================================                                 |  49%
+  |                                                                       
+  |================================                                 |  50%
+  |                                                                       
+  |=================================                                |  50%
+  |                                                                       
+  |=================================                                |  51%
+  |                                                                       
+  |==================================                               |  52%
+  |                                                                       
+  |==================================                               |  53%
+  |                                                                       
+  |===================================                              |  53%
+  |                                                                       
+  |===================================                              |  54%
+  |                                                                       
+  |====================================                             |  55%
+  |                                                                       
+  |====================================                             |  56%
+  |                                                                       
+  |=====================================                            |  56%
+  |                                                                       
+  |=====================================                            |  57%
+  |                                                                       
+  |=====================================                            |  58%
+  |                                                                       
+  |======================================                           |  58%
+  |                                                                       
+  |======================================                           |  59%
+  |                                                                       
+  |=======================================                          |  60%
+  |                                                                       
+  |=======================================                          |  61%
+  |                                                                       
+  |========================================                         |  61%
+  |                                                                       
+  |========================================                         |  62%
+  |                                                                       
+  |=========================================                        |  62%
+  |                                                                       
+  |=========================================                        |  63%
+  |                                                                       
+  |=========================================                        |  64%
+  |                                                                       
+  |==========================================                       |  64%
+  |                                                                       
+  |==========================================                       |  65%
+  |                                                                       
+  |===========================================                      |  66%
+  |                                                                       
+  |===========================================                      |  67%
+  |                                                                       
+  |============================================                     |  67%
+  |                                                                       
+  |============================================                     |  68%
+  |                                                                       
+  |=============================================                    |  69%
+  |                                                                       
+  |=============================================                    |  70%
+  |                                                                       
+  |==============================================                   |  70%
+  |                                                                       
+  |==============================================                   |  71%
+  |                                                                       
+  |==============================================                   |  72%
+  |                                                                       
+  |===============================================                  |  72%
+  |                                                                       
+  |===============================================                  |  73%
+  |                                                                       
+  |================================================                 |  73%
+  |                                                                       
+  |================================================                 |  74%
+  |                                                                       
+  |=================================================                |  75%
+  |                                                                       
+  |=================================================                |  76%
+  |                                                                       
+  |==================================================               |  76%
+  |                                                                       
+  |==================================================               |  77%
+  |                                                                       
+  |==================================================               |  78%
+  |                                                                       
+  |===================================================              |  78%
+  |                                                                       
+  |===================================================              |  79%
+  |                                                                       
+  |====================================================             |  79%
+  |                                                                       
+  |====================================================             |  80%
+  |                                                                       
+  |====================================================             |  81%
+  |                                                                       
+  |=====================================================            |  81%
+  |                                                                       
+  |=====================================================            |  82%
+  |                                                                       
+  |======================================================           |  83%
+  |                                                                       
+  |======================================================           |  84%
+  |                                                                       
+  |=======================================================          |  84%
+  |                                                                       
+  |=======================================================          |  85%
+  |                                                                       
+  |========================================================         |  85%
+  |                                                                       
+  |========================================================         |  86%
+  |                                                                       
+  |========================================================         |  87%
+  |                                                                       
+  |=========================================================        |  87%
+  |                                                                       
+  |=========================================================        |  88%
+  |                                                                       
+  |==========================================================       |  89%
+  |                                                                       
+  |==========================================================       |  90%
+  |                                                                       
+  |===========================================================      |  90%
+  |                                                                       
+  |===========================================================      |  91%
+  |                                                                       
+  |============================================================     |  92%
+  |                                                                       
+  |============================================================     |  93%
+  |                                                                       
+  |=============================================================    |  93%
+  |                                                                       
+  |=============================================================    |  94%
+  |                                                                       
+  |==============================================================   |  95%
+  |                                                                       
+  |==============================================================   |  96%
+  |                                                                       
+  |===============================================================  |  96%
+  |                                                                       
+  |===============================================================  |  97%
+  |                                                                       
+  |================================================================ |  98%
+  |                                                                       
+  |================================================================ |  99%
+  |                                                                       
+  |=================================================================|  99%
+  |                                                                       
+  |=================================================================| 100%</code></pre>
+<pre><code>## Downloading genome information (try:0) Using: Homo sapiens genes (GRCh37.p13)</code></pre>
+<pre><code>## Loading from disk</code></pre>
+<pre><code>## Starting to add information to samples</code></pre>
+<pre><code>##  =&gt; Add clinical information to samples</code></pre>
+<pre><code>## Add FFPE information. More information at: 
+## =&gt; https://cancergenome.nih.gov/cancersselected/biospeccriteria 
+## =&gt; http://gdac.broadinstitute.org/runs/sampleReports/latest/FPPP_FFPE_Cases.html</code></pre>
+<pre><code>##  =&gt; Adding subtype information to samples</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rnaseq &lt;-<span class="st"> </span><span class="kw">assay</span>(OVRnaseqSE)
+
+<span class="co">#remove the duplicate genes and make gene names the matrix row names</span>
+rnaseq &lt;-<span class="st"> </span>rnaseq[<span class="kw">which</span>(!<span class="kw">duplicated</span>(<span class="kw">rownames</span>(rnaseq))),]
+
+<span class="co">#compute the 12 character barcode for each patients</span>
+rnaseqPatients &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="kw">colnames</span>(rnaseq), <span class="kw">gsub</span>(<span class="st">&#39;</span><span class="ch">\\</span><span class="st">.&#39;</span>,<span class="st">&#39;-&#39;</span>,<span class="kw">substring</span>(<span class="kw">colnames</span>(rnaseq),<span class="dv">1</span>,<span class="dv">12</span>)))
+
+<span class="co">#only include patients that were included in Verhaak dataset</span>
+rnaseq &lt;-<span class="st"> </span>rnaseq[,<span class="kw">which</span>(rnaseqPatients[,<span class="dv">2</span>] %in%<span class="st"> </span>classDefinitions_verhaak[<span class="kw">which</span>(!<span class="kw">is.na</span>(classDefinitions_verhaak$SUBTYPE)),<span class="st">&quot;ID&quot;</span>])]
+
+rnaseqPatients &lt;-<span class="st"> </span><span class="kw">merge</span>(rnaseqPatients,classDefinitions_verhaak[,<span class="kw">c</span>(<span class="st">&quot;ID&quot;</span>,<span class="st">&quot;SUBTYPE&quot;</span>)],<span class="dt">by.x =</span> <span class="dv">2</span>, <span class="dt">by.y =</span><span class="dv">1</span>)
+<span class="kw">colnames</span>(rnaseqPatients) &lt;-<span class="st"> </span><span class="kw">c</span>( <span class="st">&quot;barcode&quot;</span>,<span class="st">&quot;patient&quot;</span>,<span class="st">&quot;SUBTYPE&quot;</span>)
+<span class="co">#change the order of the classes so mesenchymal and immunoreactive are first</span>
+rnaseqPatients &lt;-<span class="st"> </span><span class="kw">rbind</span>(rnaseqPatients[<span class="kw">which</span>(rnaseqPatients$SUBTYPE ==<span class="st"> &quot;Mesenchymal&quot;</span>),],
+                        rnaseqPatients[<span class="kw">which</span>(rnaseqPatients$SUBTYPE ==<span class="st"> &quot;Immunoreactive&quot;</span>),],
+                        rnaseqPatients[<span class="kw">which</span>(rnaseqPatients$SUBTYPE ==<span class="st"> &quot;Differentiated&quot;</span>),],
+                        rnaseqPatients[<span class="kw">which</span>(rnaseqPatients$SUBTYPE ==<span class="st"> &quot;Proliferative&quot;</span>),])
+<span class="co">#rnaseqPatients &lt;- rnaseqPatients[order(rnaseqPatients$SUBTYPE),]</span>
+
+
+<span class="co">#convert the barcodes so that they will be compatible with colnames (R doesn&#39;t like &quot;-&quot; in column names)</span>
+rnaseqPatients$patient &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="st">&#39;-&#39;</span>,<span class="st">&#39;</span><span class="ch">\\</span><span class="st">.&#39;</span>,rnaseqPatients$patient)
+<span class="kw">colnames</span>(rnaseq) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="st">&#39;-&#39;</span>,<span class="st">&#39;</span><span class="ch">\\</span><span class="st">.&#39;</span>,<span class="kw">colnames</span>(rnaseq))
+rnaseq &lt;-<span class="st"> </span>rnaseq[,<span class="kw">colnames</span>(rnaseq)[<span class="kw">order</span>(<span class="kw">match</span>(<span class="kw">colnames</span>(rnaseq),rnaseqPatients$patient))]]
+
+
+<span class="co">#rnaseq &lt;- rnaseq[,which(colnames(rnaseq) %in% rnaseqPatients[which(rnaseqPatients$SUBTYPE== &quot;Immunoreactive&quot; | rnaseqPatients$SUBTYPE == &quot;Mesenchymal&quot;  ),&quot;patient&quot;])]</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">write.table</span>(rnaseq,<span class="st">&quot;./data/Supplementary_Table12_TCGA_RNASeq_rawcounts.txt&quot;</span>,<span class="dt">col.name=</span><span class="ot">TRUE</span>,<span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>,<span class="dt">row.names=</span><span class="ot">TRUE</span>,<span class="dt">quote=</span><span class="ot">FALSE</span>)
+
+
+<span class="kw">write.table</span>(rnaseqPatients,<span class="st">&quot;./data/Supplementary_Table13_RNASeq_classdefinitions.txt&quot;</span>,<span class="dt">col.name=</span><span class="ot">TRUE</span>,<span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>,<span class="dt">row.names=</span><span class="ot">TRUE</span>,<span class="dt">quote=</span><span class="ot">FALSE</span>)</code></pre></div>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
