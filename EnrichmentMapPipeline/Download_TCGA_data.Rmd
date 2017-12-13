@@ -1,11 +1,29 @@
 ---
 title: "Download TCGA Ovarian Serous Cystadenocarcinoma Data from GDC Portal"
 author: "Ruth Isserlin"
-date: "`r format(Sys.Date())`"
-    output:
-      html_document:
-        keep_md: true
+date: '`r format(Sys.Date())`'
+output:
+  html_notebook:
+    highligh: haddock
+    number_sections: yes
+    theme: paper
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+  html_document:
+    highligh: haddock
+    keep_md: yes
+    number_sections: yes
+    theme: paper
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
 ---
+# Supplementary Protocol - Data Download
 
 This protocol processes RNA-seq data using the R programming environment and specialized packages from Bioconductor to create genes lists. The scripts are available for download and novice users can copy and paste commands into R console. To create gene expression data for Protocol 1B, we downloaded gene expression data from the Ovarian Serous Cystadenocarcinoma project of The Cancer Genome Atlas (TCGA), http://cancergenome.nih.gov via the Genomic Data Commons (GDC) portal on 2017-06-14 using TCGABiolinks R package. The dataset includes 544 samples available as RMA-normalized microarray data (Affymetrix HG-U133A), and 309 samples available as RNA-seq data, with reads mapped to a reference genome using MapSplice58 and read counts per transcript determined using the RSEM method59. RNA-seq data are labeled in the dataset as ‘RNA-Seq V2’, see details at: https://wiki.nci.nih.gov/display/TCGA/RNA-Seq+Version+2). The RNA-SeqV2 dataset consists of raw counts similar to regular RNA-seq but RSEM data can be used with the edgeR method. 
 
@@ -14,7 +32,7 @@ TCGABiolinks R package allows users to download raw or scored data directly from
 ```{r, message=FALSE, warning=FALSE}
 #for the latest version install from github
 #devtools::install_github(repo = "BioinformaticsFMRP/TCGAbiolinks")
-source("https://bioconductor.org/biocLite.R")
+#source("https://bioconductor.org/biocLite.R")
 #biocLite("TCGAbiolinks")
 #make sure the version is at least or greater than 2.5.3
 library("TCGAbiolinks")
@@ -32,7 +50,7 @@ classDefinitions_verhaak <-  read.table( "data/Verhaak_supplementary_table1_OV_s
 
 ## Download and format TCGA OV microarray data
 
-```{r}
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
 #try and download the microarray expressions data.
 query_microarray <- GDCquery(project = "TCGA-OV", 
                    data.category = "Gene expression",
@@ -86,7 +104,7 @@ write.table(microarrayPatients,"./data/Supplementary_Table11_Microarray_classdef
 ## Download and format TCGA OV RNASeq data
 Sometimes the server times out.  If you initially get an error try running this block over.  
 Also, if you have run the above code immediately before this section the tar file will have the same name but a different format.  Try deleting all tar files in the directory and re-run.
-```{r}
+```{r, eval=FALSE}
   query <- GDCquery(project = "TCGA-OV", 
                    data.category = "Gene expression",
                    data.type = "Gene expression quantification",
