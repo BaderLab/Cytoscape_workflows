@@ -29,45 +29,19 @@ output:
 bibliography: sup_protocol1_references.bib
 csl: nature-protocols.csl
 ---
+
+```{r include=FALSE}
+check=function(x) tryCatch(if(class(x) == 'logical') 1 else 1, error=function(e) 0) 
+if(check(add_setup) == 0){
+  add_setup = TRUE
+}
+```
+
+
 This protocol processes RNA-seq data using the R programming environment and specialized packages from Bioconductor to create genes lists. The scripts are available for download and novice users can copy and paste commands into the R console. To create gene expression data for **Protocol step 5B**, we downloaded gene expression data from the Ovarian Serous Cystadenocarcinoma project of The Cancer Genome Atlas (TCGA)[@TCGA], http://cancergenome.nih.gov via the Genomic Data Commons (GDC) portal[@GDC] on 2017-06-14 using TCGABiolinks R package[@TCGABiolinks]. The data includes 544 samples available as RMA-normalized microarray data (Affymetrix HG-U133A), and 309 samples available as RNA-seq data, with reads mapped to a reference genome using MapSplice[@MapSplice] and read counts per transcript determined using the RSEM method[@RSEM]. RNA-seq data are labeled as ‘RNA-Seq V2’, see details at: https://wiki.nci.nih.gov/display/TCGA/RNASeq+Version+2). The RNA-SeqV2 data consists of raw counts similar to regular RNA-seq but RSEM (RNA-Seq by Expectation Maximization) data can be used with the edgeR method.
 
-
-## Equipment
-### Hardware requirements:
-  * A recent personal computer with at least 8 gigabytes of memory (RAM).
-Software requirements:
-  * The R statistical computing environment (http://www.r-project.org/). We suggest using the integrated development environment RStudio (https://www.rstudio.com/).
-  * Required R packages: Biobase, Limma and GSA are available from Bioconductor (https://www.bioconductor.org/)
-
-### Data requirements:
-  * Supplementary_Table10_TCGA_Microarray_rmanormalized.txt corresponds to the RMA normalized Affymetrix mRNA transcript expression data for serous ovarian cancer samples as downloaded from the GDC portal65. Normalization is required to compute differential gene expression values across subtypes, as performed in Supplementary Protocol 1A.
-  * Supplementary_Table12_TCGA_RNASeq_rawcounts.txt corresponds to read counts per mRNA transcript determined using the RSEM method. These counts can be used to compare gene expression between subtypes using the edgeR analysis tool, as performed in Supplementary Protocol 1B. The counts are not pre-normalized and the normalization step using edgeR is part of the protocol.
-  * Supplementary_Table11_Microarray_classdefinitions.txt and Supplementary_Table13_RNASeq_classdefinitions.txt define the subtype classification of ovarian cancer samples (immunoreactive, mesenchymal, differentiated, proliferative) (Verhaak et al.[@OV] supplementary table 1, column 3). This information is used to extract two subgroups of interest, mesenchymal and immunoreactive.
-
-### Equipment Setup
-  * Download and install R from http://cran.r-project.org/
-  * Download and install RStudio from https://www.rstudio.com/ (optional, but recommended)
-  * Launch R or RStudio
-  * Install required Bioconductor packages. Enter the following commands in the R command line (also see https://www.bioconductor.org/install/):
-  
-    * source("http://www.Bioconductor.org/biocLite.R")
-    * biocLite("BiocUpgrade")
-    * biocLite(c("Biobase","limma",”edgeR”,”GSA”,”locfit”))
-    * install.packages(c(“pheatmap”, ”RColorBrewer”, ”gProfileR”, ”RJSONIO”, ”httr”))
-  * If the required packages are already installed you may receive a prompt to update these. The prompt window will ask you about updating the packages: 
-  
-    * Update all/some/none? [a/s/n]
-    * Type ‘a’ without quotes and hit enter.
-  * Load libraries into the R session using the example below. Loading of libraries is required every time R is re-opened.
-  
-    * library(“limma”)
-  * All R files are available at https://github.com/BaderLab/EM-tutorials-docker/tree/master/R_scripts
-  * Alternately, R notebooks (use R markdown and creates a notebook similar to Jupyter notebooks) of this protocol are available at https://github.com/BaderLab/Cytoscape_workflows/tree/master/EnrichmentMapPipeline
-
-### Data setup
-  * Download Supplementary Tables 10-13 to a dedicated folder of your computer. The first step of your R script will change the working directory of R to this folder. 
-  * As text editors sometimes add invisible characters to text copied from PDF files, copying and pasting from this document is not recommended. The R scripts or the R notebook available in the above URLs should be used instead. 
-  * Setting the current directory and loading packages (libraries) are the required first and second steps of each protocol. These are needed each time a new session is opened in R.
+```{r autodoc, child='supplementary_protocols123_setup.Rmd', eval=add_setup, echo=add_setup}
+``` 
 
 
 ## Process RNASeq data
@@ -448,4 +422,4 @@ write.table(ranks_RNAseq, paste(working_dir,"ProlifvsRest_RNASeq_ranks.rnk",sep=
 col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
 ```
 
-## References
+## `r if(add_setup){paste("References")}`

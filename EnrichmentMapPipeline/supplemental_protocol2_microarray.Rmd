@@ -31,43 +31,16 @@ csl: nature-protocols.csl
 
 This protocol demonstrates the extraction of gene lists for pathway enrichment analysis using RMA-normalized gene expression data from Affymetrix microarrays for downstream pathway enrichment analysis with g:Profiler, GSEA and other similar tools. g:Profiler requires a ranked list of differentially expressed genes that are filtered according to a significance cut-off. GSEA requires a two-column tab-separated RNK file with a ranked list of all genes in the genome. In the RNK file, the first column specifies the gene name and the second column specifies a numeric score representing the level of differential expression. For both methods, the first step involves calculating a statistic for each gene that represents the difference in its expression levels between the two groups. This step is performed using the limma R package. 
 
+```{r include=FALSE}
+check=function(x) tryCatch(if(class(x) == 'logical') 1 else 1, error=function(e) 0) 
+if(check(add_setup) == 0){
+  add_setup = TRUE
+}
+```
 
-## Equipment
-### Hardware requirements:
-  * A recent personal computer with at least 8 gigabytes of memory (RAM).
-Software requirements:
-  * The R statistical computing environment (http://www.r-project.org/). We suggest using the integrated development environment RStudio (https://www.rstudio.com/).
-  * Required R packages: Biobase, Limma and GSA are available from Bioconductor (https://www.bioconductor.org/)
 
-### Data requirements:
-  * Supplementary_Table10_TCGA_Microarray_rmanormalized.txt corresponds to the RMA normalized Affymetrix mRNA transcript expression data for serous ovarian cancer samples as downloaded from the GDC portal65. Normalization is required to compute differential gene expression values across subtypes, as performed in Supplementary Protocol 1A.
-  * Supplementary_Table12_TCGA_RNASeq_rawcounts.txt corresponds to read counts per mRNA transcript determined using the RSEM method. These counts can be used to compare gene expression between subtypes using the edgeR analysis tool, as performed in Supplementary Protocol 1B. The counts are not pre-normalized and the normalization step using edgeR is part of the protocol.
-  * Supplementary_Table11_Microarray_classdefinitions.txt and Supplementary_Table13_RNASeq_classdefinitions.txt define the subtype classification of ovarian cancer samples (immunoreactive, mesenchymal, differentiated, proliferative) (Verhaak et al.[@OV] supplementary table 1, column 3). This information is used to extract two subgroups of interest, mesenchymal and immunoreactive.
-
-### Equipment Setup
-  * Download and install R from http://cran.r-project.org/
-  * Download and install RStudio from https://www.rstudio.com/ (optional, but recommended)
-  * Launch R or RStudio
-  * Install required Bioconductor packages. Enter the following commands in the R command line (also see https://www.bioconductor.org/install/):
-  
-    * source("http://www.Bioconductor.org/biocLite.R")
-    * biocLite("BiocUpgrade")
-    * biocLite(c("Biobase","limma",”edgeR”,”GSA”,”locfit”))
-    * install.packages(c(“pheatmap”, ”RColorBrewer”, ”gProfileR”, ”RJSONIO”, ”httr”))
-  * If the required packages are already installed you may receive a prompt to update these. The prompt window will ask you about updating the packages: 
-  
-    * Update all/some/none? [a/s/n]
-    * Type ‘a’ without quotes and hit enter.
-  * Load libraries into the R session using the example below. Loading of libraries is required every time R is re-opened.
-  
-    * library(“limma”)
-  * All R files are available at https://github.com/BaderLab/EM-tutorials-docker/tree/master/R_scripts
-  * Alternately, R notebooks (use R markdown and creates a notebook similar to Jupyter notebooks) of this protocol are available at https://github.com/BaderLab/Cytoscape_workflows/tree/master/EnrichmentMapPipeline
-
-### Data setup
-  * Download Supplementary Tables 10-13 to a dedicated folder of your computer. The first step of your R script will change the working directory of R to this folder. 
-  * As text editors sometimes add invisible characters to text copied from PDF files, copying and pasting from this document is not recommended. The R scripts or the R notebook available in the above URLs should be used instead. 
-  * Setting the current directory and loading packages (libraries) are the required first and second steps of each protocol. These are needed each time a new session is opened in R.
+```{r autodoc, child='supplementary_protocols123_setup.Rmd', eval=add_setup, echo=add_setup}
+``` 
 
 ## Process Microarray data
 
@@ -231,4 +204,4 @@ write.table(EM_expressionFile, "TCGA_OV_expression.txt",
 
 ```
 
-## References
+## `r if(add_setup){paste("References")}`
