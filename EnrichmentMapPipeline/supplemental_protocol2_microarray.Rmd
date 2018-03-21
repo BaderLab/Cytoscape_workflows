@@ -3,9 +3,6 @@ title: "Supplementary Protocol 2 – create a gene list by analyzing gene expres
 author: "Ruth Isserlin"
 date: "`r format(Sys.Date())`"
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
   html_document:
     highligh: haddock
     keep_md: yes
@@ -16,6 +13,9 @@ output:
     toc_float:
       collapsed: no
       smooth_scroll: no
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
   html_notebook:
     highligh: haddock
     number_sections: yes
@@ -46,7 +46,7 @@ if(check(add_setup) == 0){
 
 ### Load required packages
 10. Load required Bioconductor packages into R
-```{r}
+```{r, warning=FALSE}
 #check to see if the library has already been installed.  If it hasn't then install it. 
 tryCatch(expr = { library("Biobase")}, 
          error = function(e) { 
@@ -187,7 +187,7 @@ head(ranks)
 ### Create expression file
 21. Create an expression file for the enrichment map and save files to the home folder of the analysis. The expression file contains the gene IDs as the first column gene description as the second column and the expression values for each sample as the additional columns. Gene IDs should correspond to the first column of the rank file. The text files will be saved on your computer in the directory specified at the beginning of the script using setwd(). The .rnk, .cls and .txt are all tab delimited files that can be viewed in spreadsheet or in a text editor.
 
-```{r, eval=FALSE, include=FALSE}
+```{r, eval=FALSE, include=TRUE}
 library(biomaRt)
 mart = useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
 
@@ -204,4 +204,8 @@ write.table(EM_expressionFile, "TCGA_OV_expression.txt",
 
 ```
 
-## `r if(add_setup){paste("References")}`
+```{r, eval = add_setup,echo=FALSE, warning=FALSE}
+library(knitr)
+asis_output("## References\\n") # Header that is only shown if add_setup == TRUE
+```
+
