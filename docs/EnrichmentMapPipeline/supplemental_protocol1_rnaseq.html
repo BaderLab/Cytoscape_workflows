@@ -11,7 +11,7 @@
 
 <meta name="author" content="Ruth Isserlin" />
 
-<meta name="date" content="2017-12-13" />
+<meta name="date" content="2018-03-21" />
 
 <title>Supplementary Protocol 1 – create a gene list by analyzing gene expression data from RNA-seq with edgeR</title>
 
@@ -359,79 +359,138 @@ div.tocify {
 
 <h1 class="title toc-ignore">Supplementary Protocol 1 – create a gene list by analyzing gene expression data from RNA-seq with edgeR</h1>
 <h4 class="author"><em>Ruth Isserlin</em></h4>
-<h4 class="date"><em>2017-12-13</em></h4>
+<h4 class="date"><em>2018-03-21</em></h4>
 
 </div>
 
 
-<div id="process-rnaseq-data" class="section level1">
-<h1><span class="header-section-number">1</span> Process RNASeq data</h1>
+<p>This protocol processes RNA-seq data using the R programming environment and specialized packages from Bioconductor to create genes lists. The scripts are available for download and novice users can copy and paste commands into the R console. To create gene expression data for <strong>Protocol step 5B</strong>, we downloaded gene expression data from the Ovarian Serous Cystadenocarcinoma project of The Cancer Genome Atlas (TCGA)<span class="citation"><sup>1</sup></span>, <a href="http://cancergenome.nih.gov" class="uri">http://cancergenome.nih.gov</a> via the Genomic Data Commons (GDC) portal<span class="citation"><sup>2</sup></span> on 2017-06-14 using TCGABiolinks R package<span class="citation"><sup>3</sup></span>. The data includes 544 samples available as RMA-normalized microarray data (Affymetrix HG-U133A), and 309 samples available as RNA-seq data, with reads mapped to a reference genome using MapSplice<span class="citation"><sup>4</sup></span> and read counts per transcript determined using the RSEM method<span class="citation"><sup>5</sup></span>. RNA-seq data are labeled as ‘RNA-Seq V2’, see details at: <a href="https://wiki.nci.nih.gov/display/TCGA/RNASeq+Version+2" class="uri">https://wiki.nci.nih.gov/display/TCGA/RNASeq+Version+2</a>). The RNA-SeqV2 data consists of raw counts similar to regular RNA-seq but RSEM (RNA-Seq by Expectation Maximization) data can be used with the edgeR method.</p>
+<div id="background-and-setup-for-all-supplmentary-protocols" class="section level1">
+<h1><span class="header-section-number">1</span> Background and Setup for all Supplmentary Protocols</h1>
+<div id="equipment" class="section level2">
+<h2><span class="header-section-number">1.1</span> Equipment</h2>
+<div id="hardware-requirements" class="section level3">
+<h3><span class="header-section-number">1.1.1</span> Hardware requirements:</h3>
+<ul>
+<li>A recent personal computer with at least 8 gigabytes of memory (RAM). Software requirements:</li>
+<li>The R statistical computing environment (<a href="http://www.r-project.org/" class="uri">http://www.r-project.org/</a>). We suggest using the integrated development environment RStudio (<a href="https://www.rstudio.com/" class="uri">https://www.rstudio.com/</a>).</li>
+<li>Required R packages: Biobase, Limma and GSA are available from Bioconductor (<a href="https://www.bioconductor.org/" class="uri">https://www.bioconductor.org/</a>)</li>
+</ul>
+</div>
+<div id="data-requirements" class="section level3">
+<h3><span class="header-section-number">1.1.2</span> Data requirements:</h3>
+<ul>
+<li>Supplementary_Table10_TCGA_Microarray_rmanormalized.txt corresponds to the RMA normalized Affymetrix mRNA transcript expression data for serous ovarian cancer samples as downloaded from the GDC portal65. Normalization is required to compute differential gene expression values across subtypes, as performed in Supplementary Protocol 1A.</li>
+<li>Supplementary_Table12_TCGA_RNASeq_rawcounts.txt corresponds to read counts per mRNA transcript determined using the RSEM method. These counts can be used to compare gene expression between subtypes using the edgeR analysis tool, as performed in Supplementary Protocol 1B. The counts are not pre-normalized and the normalization step using edgeR is part of the protocol.</li>
+<li>Supplementary_Table11_Microarray_classdefinitions.txt and Supplementary_Table13_RNASeq_classdefinitions.txt define the subtype classification of ovarian cancer samples (immunoreactive, mesenchymal, differentiated, proliferative) (Verhaak et al.<span class="citation"><sup>6</sup></span> supplementary table 1, column 3). This information is used to extract two subgroups of interest, mesenchymal and immunoreactive.</li>
+</ul>
+</div>
+<div id="equipment-setup" class="section level3">
+<h3><span class="header-section-number">1.1.3</span> Equipment Setup</h3>
+<ul>
+<li>Download and install R from <a href="http://cran.r-project.org/" class="uri">http://cran.r-project.org/</a></li>
+<li>Download and install RStudio from <a href="https://www.rstudio.com/" class="uri">https://www.rstudio.com/</a> (optional, but recommended)</li>
+<li>Launch R or RStudio</li>
+<li><p>Install required Bioconductor packages. Enter the following commands in the R command line (also see <a href="https://www.bioconductor.org/install/" class="uri">https://www.bioconductor.org/install/</a>):</p>
+<ul>
+<li>source(“<a href="http://www.Bioconductor.org/biocLite.R" class="uri">http://www.Bioconductor.org/biocLite.R</a>”)</li>
+<li>biocLite(“BiocUpgrade”)</li>
+<li>biocLite(c(“Biobase”,“limma”,”edgeR”,”GSA”,”locfit”))</li>
+<li>install.packages(c(“pheatmap”, ”RColorBrewer”, ”gProfileR”, ”RJSONIO”, ”httr”))</li>
+</ul></li>
+<li><p>If the required packages are already installed you may receive a prompt to update these. The prompt window will ask you about updating the packages:</p>
+<ul>
+<li>Update all/some/none? [a/s/n]</li>
+<li>Type ‘a’ without quotes and hit enter.</li>
+</ul></li>
+<li><p>Load libraries into the R session using the example below. Loading of libraries is required every time R is re-opened.</p>
+<ul>
+<li>library(“limma”)</li>
+</ul></li>
+<li>All R files are available at <a href="https://github.com/BaderLab/EM-tutorials-docker/tree/master/R_scripts" class="uri">https://github.com/BaderLab/EM-tutorials-docker/tree/master/R_scripts</a></li>
+<li><p>Alternately, R notebooks (use R markdown and creates a notebook similar to Jupyter notebooks) of this protocol are available at <a href="https://github.com/BaderLab/Cytoscape_workflows/tree/master/EnrichmentMapPipeline" class="uri">https://github.com/BaderLab/Cytoscape_workflows/tree/master/EnrichmentMapPipeline</a></p></li>
+</ul>
+</div>
+<div id="data-setup" class="section level3">
+<h3><span class="header-section-number">1.1.4</span> Data setup</h3>
+<ul>
+<li>Download Supplementary Tables 10-13 to a dedicated folder of your computer. The first step of your R script will change the working directory of R to this folder.</li>
+<li>As text editors sometimes add invisible characters to text copied from PDF files, copying and pasting from this document is not recommended. The R scripts or the R notebook available in the above URLs should be used instead.</li>
+<li>Setting the current directory and loading packages (libraries) are the required first and second steps of each protocol. These are needed each time a new session is opened in R.</li>
+</ul>
+</div>
+</div>
+<div id="process-rnaseq-data" class="section level2">
+<h2><span class="header-section-number">1.2</span> Process RNASeq data</h2>
 <p>This part of the supplementary protocol demonstrates filtering and scoring RNA-Seq data using normalized RNA-Seq count data with the edgeR R package. The protocol can be used to produce input data for pathway enrichment methods like g:Profiler, GSEA and others. This RNA-Seq analysis protocol follows conceptually similar steps to microarray analysis shown above.</p>
-<div id="load-required-packages" class="section level2">
-<h2><span class="header-section-number">1.1</span> Load required packages</h2>
+<div id="load-required-packages" class="section level3">
+<h3><span class="header-section-number">1.2.1</span> Load required packages</h3>
 <ol style="list-style-type: decimal">
 <li>Load required Bioconductor packages into R.</li>
 </ol>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">knitr::opts_knit$<span class="kw">set</span>(<span class="dt">cache =</span> <span class="ot">TRUE</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">knitr<span class="op">::</span>opts_knit<span class="op">$</span><span class="kw">set</span>(<span class="dt">cache =</span> <span class="ot">TRUE</span>)
 
 <span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;edgeR&quot;</span>)}, 
-         <span class="dt">error =</span> function(e) { 
+         <span class="dt">error =</span> <span class="cf">function</span>(e) { 
            <span class="kw">source</span>(<span class="st">&quot;https://bioconductor.org/biocLite.R&quot;</span>)
            <span class="kw">biocLite</span>(<span class="st">&quot;edgeR&quot;</span>)}, 
          <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;edgeR&quot;</span>))</code></pre></div>
-<pre><code>## Warning: package &#39;edgeR&#39; was built under R version 3.4.2</code></pre>
 <pre><code>## Loading required package: limma</code></pre>
-<pre><code>## Warning: package &#39;limma&#39; was built under R version 3.4.2</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">working_dir &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="kw">getwd</span>(),<span class="st">&quot;data&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>)
 
 <span class="co">#The field in the class definition file that defines the classes of the data.</span>
 data_classes &lt;-<span class="st"> &quot;SUBTYPE&quot;</span></code></pre></div>
 </div>
-<div id="load-expression-data" class="section level2">
-<h2><span class="header-section-number">1.2</span> Load Expression Data</h2>
+<div id="load-expression-data" class="section level3">
+<h3><span class="header-section-number">1.2.2</span> Load Expression Data</h3>
 <ol start="2" style="list-style-type: decimal">
-<li>Load the expression dataset of 300 tumours, with 79 classified as Immunoreactive, 72 classified as Mesenchymal, 69 classified as Differentiated, and 80 classified as Proliferative samples. The TCGA counts data was retrieved from the GDC and contained counts per mRNA transcript determined using the RSEM method for 19947 transcripts and 300 samples.</li>
+<li>Load the expression dataset of 300 tumours, with 79 classified as Immunoreactive, 72 classified as Mesenchymal, 69 classified as Differentiated, and 80 classified as Proliferative samples. The TCGA counts data was retrieved from the GDC<span class="citation"><sup>2</sup></span> and contained counts per mRNA transcript determined using the RSEM method for 19947 transcripts and 300 samples.</li>
 </ol>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">RNASeq &lt;-<span class="st"> </span><span class="kw">read.table</span>(  <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table12_TCGA_RNASeq_rawcounts.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>),  <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">RNASeq &lt;-<span class="st"> </span><span class="kw">read.table</span>( 
+  <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table12_TCGA_RNASeq_rawcounts.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>),  
+  <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</code></pre></div>
 </div>
-<div id="load-subtype-information" class="section level2">
-<h2><span class="header-section-number">1.3</span> Load subtype information</h2>
+<div id="load-subtype-information" class="section level3">
+<h3><span class="header-section-number">1.2.3</span> Load subtype information</h3>
 <ol start="3" style="list-style-type: decimal">
-<li>Load subtype classification of samples. To calculate differential expression, we need to define at least two sample classes. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into mesenchymal and immunoreactive classes (class definitions were obtained from Verhaak et al. Supplementary Table 1, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal.</li>
+<li>Load subtype classification of samples. To calculate differential expression, we need to define at least two sample classes. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into mesenchymal and immunoreactive classes (class definitions were obtained from Verhaak et al.<span class="citation"><sup>6</sup></span> Supplementary Table 1, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal.</li>
 </ol>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">classDefinitions_RNASeq &lt;-<span class="st"> </span><span class="kw">read.table</span>( <span class="kw">paste</span>(working_dir, <span class="st">&quot;Supplementary_Table13_RNASeq_classdefinitions.txt&quot;</span>, <span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">classDefinitions_RNASeq &lt;-<span class="st"> </span><span class="kw">read.table</span>( 
+  <span class="kw">paste</span>(working_dir, <span class="st">&quot;Supplementary_Table13_RNASeq_classdefinitions.txt&quot;</span>, <span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
+  <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</code></pre></div>
 </div>
-<div id="filter-data" class="section level2">
-<h2><span class="header-section-number">1.4</span> Filter Data</h2>
+<div id="filter-data" class="section level3">
+<h3><span class="header-section-number">1.2.4</span> Filter Data</h3>
 <ol start="4" style="list-style-type: decimal">
 <li>Filter RNA-seq reads. RNA-seq data are processed following the edgeR protocol15 that filters reads based on the counts per million (CPM) statistic. RNA-seq read counts are converted to CPM values and genes with CPM &gt; 1 in at least 50 of the samples are retained for further study (50 is the minimal sample size in the classes). This step removes genes with very low read counts that are likely not expressed in the majority of samples and cause noise in the data. Note, CPM filtering is used to remove low counts while differential gene expression analysis is based on normalized read counts which are generated below (step 6).</li>
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cpms &lt;-<span class="st"> </span><span class="kw">cpm</span>(RNASeq)
-keep &lt;-<span class="st"> </span><span class="kw">rowSums</span>(cpms &gt;<span class="st"> </span><span class="dv">1</span>) &gt;=<span class="st"> </span><span class="dv">50</span>
+keep &lt;-<span class="st"> </span><span class="kw">rowSums</span>(cpms <span class="op">&gt;</span><span class="st"> </span><span class="dv">1</span>) <span class="op">&gt;=</span><span class="st"> </span><span class="dv">50</span>
 counts &lt;-<span class="st"> </span>RNASeq[keep,]</code></pre></div>
 </div>
-<div id="normalization-and-dispersion" class="section level2">
-<h2><span class="header-section-number">1.5</span> Normalization and Dispersion</h2>
+<div id="normalization-and-dispersion" class="section level3">
+<h3><span class="header-section-number">1.2.5</span> Normalization and Dispersion</h3>
 <ol start="5" style="list-style-type: decimal">
 <li>Data normalization, dispersion analysis is performed on the entire dataset.</li>
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># create data structure to hold counts and subtype information for each sample.</span>
-d &lt;-<span class="st"> </span><span class="kw">DGEList</span>(<span class="dt">counts=</span>counts, <span class="dt">group=</span>classDefinitions_RNASeq$SUBTYPE)
+d &lt;-<span class="st"> </span><span class="kw">DGEList</span>(<span class="dt">counts=</span>counts, <span class="dt">group=</span>classDefinitions_RNASeq<span class="op">$</span>SUBTYPE)
 
 <span class="co">#Normalize the data</span>
 d &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(d)
 
-<span class="co">#create multidimensional scaling(MDS) plot.  The command below will automatically generate the plot containing all samples where each</span>
-<span class="co"># subtype is a different color.  Ideally there should be a good separation between the different classes.</span>
-mds_output &lt;-<span class="st"> </span><span class="kw">plotMDS</span>(d, <span class="dt">labels=</span>classDefinitions_RNASeq$SUBTYPE, 
-<span class="dt">col=</span> <span class="kw">c</span>(<span class="st">&quot;darkgreen&quot;</span>,<span class="st">&quot;blue&quot;</span>,<span class="st">&quot;red&quot;</span>, <span class="st">&quot;orange&quot;</span>)[<span class="kw">factor</span>(classDefinitions_RNASeq$SUBTYPE)])</code></pre></div>
-<p><img src="supplemental_protocol1_rnaseq_files/figure-html/unnamed-chunk-5-1.png" /><!-- --></p>
+<span class="co">#create multidimensional scaling(MDS) plot.  The command below will automatically </span>
+<span class="co"># generate the plot containing all samples where each subtype is a different color.  </span>
+<span class="co">#Ideally there should be a good separation between the different classes.</span>
+mds_output &lt;-<span class="st"> </span><span class="kw">plotMDS</span>(d, <span class="dt">labels=</span>classDefinitions_RNASeq<span class="op">$</span>SUBTYPE, 
+<span class="dt">col=</span> <span class="kw">c</span>(<span class="st">&quot;darkgreen&quot;</span>,<span class="st">&quot;blue&quot;</span>,<span class="st">&quot;red&quot;</span>, <span class="st">&quot;orange&quot;</span>)[<span class="kw">factor</span>(classDefinitions_RNASeq<span class="op">$</span>SUBTYPE)])</code></pre></div>
+<p><img src="supplemental_protocol1_rnaseq_files/figure-html/unnamed-chunk-6-1.png" /><!-- --></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#calculate dispersion</span>
 d &lt;-<span class="st"> </span><span class="kw">estimateCommonDisp</span>(d)
 d &lt;-<span class="st"> </span><span class="kw">estimateTagwiseDisp</span>(d)</code></pre></div>
 </div>
-<div id="filter-unannotated-genes" class="section level2">
-<h2><span class="header-section-number">1.6</span> Filter unannotated genes</h2>
+<div id="filter-unannotated-genes" class="section level3">
+<h3><span class="header-section-number">1.2.6</span> Filter unannotated genes</h3>
 <ol start="6" style="list-style-type: decimal">
 <li>(Optional) Exclude genes with missing symbols or uncharacterized genes. In this example gene entries in the dataset containing ‘?’ or starting with LOC are excluded as they represent non-annotated genes or other loci that are not present in pathway databases. The frequency of these and other non protein coding entries in your dataset will depend on the database used to align your RNASeq data.</li>
 </ol>
@@ -439,57 +498,72 @@ d &lt;-<span class="st"> </span><span class="kw">estimateTagwiseDisp</span>(d)</
 <span class="co"># any number ofadditional terms can be added to the regular expresion, for example </span>
 <span class="co"># to exclude any genes that start with &quot;His&quot; add |^His to the regular expression</span>
 exclude &lt;-<span class="st"> </span><span class="kw">grep</span>(<span class="st">&quot;</span><span class="ch">\\</span><span class="st">?|^LOC&quot;</span>, <span class="kw">rownames</span>(d), <span class="dt">value=</span>T)
-d &lt;-<span class="st"> </span>d[<span class="kw">which</span>(!<span class="kw">rownames</span>(d) %in%<span class="st"> </span>exclude),]</code></pre></div>
+d &lt;-<span class="st"> </span>d[<span class="kw">which</span>(<span class="op">!</span><span class="kw">rownames</span>(d) <span class="op">%in%</span><span class="st"> </span>exclude),]</code></pre></div>
 </div>
-<div id="calculate-differential-expression" class="section level2">
-<h2><span class="header-section-number">1.7</span> Calculate Differential expression</h2>
+<div id="calculate-differential-expression" class="section level3">
+<h3><span class="header-section-number">1.2.7</span> Calculate Differential expression</h3>
 <ol start="7" style="list-style-type: decimal">
-<li>Differential expression analysis is performed with a simple design as described in the edgeR protocol15.</li>
+<li>Differential expression analysis is performed with a simple design as described in the edgeR protocol<span class="citation"><sup>7</sup></span>.</li>
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#calculate differential expression statistics with a simple design</span>
 de &lt;-<span class="st"> </span><span class="kw">exactTest</span>(d, <span class="dt">pair=</span><span class="kw">c</span>(<span class="st">&quot;Immunoreactive&quot;</span>,<span class="st">&quot;Mesenchymal&quot;</span>))
 tt_exact_test &lt;-<span class="st"> </span><span class="kw">topTags</span>(de,<span class="dt">n=</span><span class="kw">nrow</span>(d))
 
-<span class="co">#alternately you can also use the glm model using contrasts.  For a simple 2 class comparison this is not required but if you want to compare</span>
+<span class="co">#alternately you can also use the glm model using contrasts.  </span>
+<span class="co">#For a simple 2 class comparison this is not required but if you want to compare</span>
 <span class="co"># 1 class to the remaining 3 classes then this sort of model is useful.</span>
 classes &lt;-<span class="st"> </span><span class="kw">factor</span>(classDefinitions_RNASeq[,data_classes])
-modelDesign &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(~<span class="st"> </span><span class="dv">0</span> +<span class="st"> </span>classes)
+modelDesign &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span><span class="dv">0</span> <span class="op">+</span><span class="st"> </span>classes)
 
-contrast_mesenvsimmuno &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>(<span class="dt">mesenvsimmuno =</span><span class="st">&quot;classesMesenchymal-classesImmunoreactive&quot;</span>,<span class="dt">levels=</span>modelDesign)
+contrast_mesenvsimmuno &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>(
+                  <span class="dt">mesenvsimmuno =</span><span class="st">&quot;classesMesenchymal-classesImmunoreactive&quot;</span>,
+                  <span class="dt">levels=</span>modelDesign)
 fit_glm &lt;-<span class="st"> </span><span class="kw">glmFit</span>(d,modelDesign)
 mesenvsimmuno &lt;-<span class="st"> </span><span class="kw">glmLRT</span>(fit_glm , <span class="dt">contrast =</span> contrast_mesenvsimmuno)
 tt_mesenvsimmuno &lt;-<span class="st"> </span><span class="kw">topTags</span>(mesenvsimmuno,<span class="dt">n=</span><span class="kw">nrow</span>(d))</code></pre></div>
 <p>Examples of different designs that can be used for this dataset. Instead of simple two class design you can also compare one class to the remaining three classes.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">classes &lt;-<span class="st"> </span><span class="kw">factor</span>(classDefinitions_RNASeq[,data_classes])
-modelDesign &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(~<span class="st"> </span><span class="dv">0</span> +<span class="st"> </span>classes)
+modelDesign &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span><span class="dv">0</span> <span class="op">+</span><span class="st"> </span>classes)
 
-contrast_immuno &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>(<span class="dt">immunovsrest =</span><span class="st">&quot;classesImmunoreactive-(classesMesenchymal + classesProliferative +classesDifferentiated)/3&quot;</span>,<span class="dt">levels=</span>modelDesign)
+contrast_immuno &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>(
+  <span class="dt">immunovsrest =</span><span class="st">&quot;classesImmunoreactive-(classesMesenchymal + </span>
+<span class="st">  classesProliferative +classesDifferentiated)/3&quot;</span>,
+  <span class="dt">levels=</span>modelDesign)
 fit_glm &lt;-<span class="st"> </span><span class="kw">glmFit</span>(d,modelDesign)
 immunovsrest &lt;-<span class="st"> </span><span class="kw">glmLRT</span>(fit_glm , <span class="dt">contrast =</span> contrast_immuno)
 tt_immunovsrest &lt;-<span class="st"> </span><span class="kw">topTags</span>(immunovsrest,<span class="dt">n=</span><span class="kw">nrow</span>(d))
 
-contrast_mesen &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>( <span class="dt">mesenvsrest =</span> <span class="st">&quot;classesMesenchymal-(classesImmunoreactive + classesProliferative +classesDifferentiated)/3&quot;</span>,<span class="dt">levels=</span>modelDesign)
+contrast_mesen &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>( 
+  <span class="dt">mesenvsrest =</span> <span class="st">&quot;classesMesenchymal-(classesImmunoreactive + </span>
+<span class="st">  classesProliferative +classesDifferentiated)/3&quot;</span>,
+  <span class="dt">levels=</span>modelDesign)
 fit_glm &lt;-<span class="st"> </span><span class="kw">glmFit</span>(d,modelDesign)
 mesenvsrest &lt;-<span class="st"> </span><span class="kw">glmLRT</span>(fit_glm , <span class="dt">contrast =</span> contrast_mesen)
 tt_mesenvsrest &lt;-<span class="st"> </span><span class="kw">topTags</span>(mesenvsrest,<span class="dt">n=</span><span class="kw">nrow</span>(d))
 
-contrast_prolif &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>( <span class="dt">prolifvsrest =</span> <span class="st">&quot;classesProliferative-(classesMesenchymal + classesImmunoreactive +classesDifferentiated)/3&quot;</span>,<span class="dt">levels=</span>modelDesign)
+contrast_prolif &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>( 
+  <span class="dt">prolifvsrest =</span> <span class="st">&quot;classesProliferative-(classesMesenchymal + </span>
+<span class="st">  classesImmunoreactive +classesDifferentiated)/3&quot;</span>,
+  <span class="dt">levels=</span>modelDesign)
 fit_glm &lt;-<span class="st"> </span><span class="kw">glmFit</span>(d,modelDesign)
 prolifvsrest &lt;-<span class="st"> </span><span class="kw">glmLRT</span>(fit_glm , <span class="dt">contrast =</span> contrast_prolif)
 tt_prolifvsrest &lt;-<span class="st"> </span><span class="kw">topTags</span>(prolifvsrest,<span class="dt">n=</span><span class="kw">nrow</span>(d))
 
-contrast_diff &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>( <span class="dt">diffvsrest =</span> <span class="st">&quot;classesDifferentiated-(classesMesenchymal + classesImmunoreactive +classesProliferative)/3&quot;</span>,<span class="dt">levels=</span>modelDesign)
+contrast_diff &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>( 
+  <span class="dt">diffvsrest =</span> <span class="st">&quot;classesDifferentiated-(classesMesenchymal + </span>
+<span class="st">  classesImmunoreactive +classesProliferative)/3&quot;</span>,
+  <span class="dt">levels=</span>modelDesign)
 fit_glm &lt;-<span class="st"> </span><span class="kw">glmFit</span>(d,modelDesign)
 diffvsrest &lt;-<span class="st"> </span><span class="kw">glmLRT</span>(fit_glm , <span class="dt">contrast =</span> contrast_diff)
 tt_diffvsrest &lt;-<span class="st"> </span><span class="kw">topTags</span>(diffvsrest,<span class="dt">n=</span><span class="kw">nrow</span>(d))</code></pre></div>
 </div>
-<div id="create-gprofiler-input-list" class="section level2">
-<h2><span class="header-section-number">1.8</span> Create g:Profiler input list</h2>
+<div id="create-gprofiler-input-list" class="section level3">
+<h3><span class="header-section-number">1.2.8</span> Create g:Profiler input list</h3>
 <p>8a. Create the gene list for use in g:Profiler or another thresholded enrichment tool. The list may comprise all genes that have a significant FDR-corrected p-value (code shown below), all significant and FDR-corrected up-regulated genes and all down-regulated genes separately, or some other combination of thresholds. Also see analogous step in the microarray protocol.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">tt &lt;-<span class="st"> </span>tt_exact_test
 
 <span class="co">#get the indices of scored dataset that have FDR &lt; 0.05</span>
-select_genes =<span class="st"> </span><span class="kw">which</span>(tt$table$FDR&lt;<span class="fl">0.05</span>)
+select_genes =<span class="st"> </span><span class="kw">which</span>(tt<span class="op">$</span>table<span class="op">$</span>FDR<span class="op">&lt;</span><span class="fl">0.05</span>)
 
 <span class="co">#output how many genes there are in the set that have FDR&lt;0.05</span>
 <span class="kw">length</span>(select_genes)</code></pre></div>
@@ -497,8 +571,8 @@ select_genes =<span class="st"> </span><span class="kw">which</span>(tt$table$FD
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#gene names from the TCGA set contain gene name and entrez gene ids separated by ‘|’</span>
 <span class="co"># for all subsequent enrichment analysis we need to have just one id.  Separate the names </span>
 <span class="co"># into their two ids and keep the gene symbols</span>
-topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>(<span class="kw">rownames</span>(tt$table)[select_genes], 
-                                    function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
+topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>(<span class="kw">rownames</span>(tt<span class="op">$</span>table)[select_genes], 
+                             <span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
 
 <span class="co">#output the top 5 entries in the list of top genes</span>
 <span class="kw">head</span>(topgenes_qvalue005)</code></pre></div>
@@ -508,18 +582,19 @@ topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(
 <span class="kw">write.table</span>(topgenes_qvalue005, <span class="st">&quot;MesenchymalvsImmunoreactive_RNAseq_allsignificantgenes.txt&quot;</span>, 
             <span class="dt">col.names=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)</code></pre></div>
 </div>
-<div id="create-gsea-input-list" class="section level2">
-<h2><span class="header-section-number">1.9</span> Create GSEA input list</h2>
+<div id="create-gsea-input-list" class="section level3">
+<h3><span class="header-section-number">1.2.9</span> Create GSEA input list</h3>
 <p>8b. Create a two-column rank (.RNK) file of all gene IDs and corresponding scores to for GSEA pre-ranked analysis. One option is to rank genes by t-statistic of differential gene expression. GSEA will look for enrichment in the set of most differentially expressed genes at the top of the list as well as those at the bottom of the list. Genes at the top of the list are more highly expressed in class A of samples (e.g., mesenchymal) while genes at the bottom are highly expressed in class B (e.g., immunoreactive). An alternative score can be computed by multiplying direction (sign) of fold change and logarithm of p-value for each gene.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#calculate ranks</span>
-ranks_RNAseq =<span class="st"> </span><span class="kw">sign</span>(tt$table$logFC) *<span class="st"> </span>-<span class="kw">log10</span>(tt$table$PValue)
+ranks_RNAseq =<span class="st"> </span><span class="kw">sign</span>(tt<span class="op">$</span>table<span class="op">$</span>logFC) <span class="op">*</span><span class="st"> </span><span class="op">-</span><span class="kw">log10</span>(tt<span class="op">$</span>table<span class="op">$</span>PValue)
 
 <span class="co">#gene names from the TCGA set contain gene name and entrez gene ids separated by ‘|’</span>
 <span class="co"># for all subsequent enrichment analysis we need to have just one id.  Separate the names </span>
 <span class="co"># into their two ids.</span>
-genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table), function(data) 
+genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table), <span class="cf">function</span>(data) 
   {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
-geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table),  function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]})) 
+geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table),  
+                          <span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]})) 
 
 <span class="co">#create ranks file</span>
 ranks_RNAseq &lt;-<span class="st"> </span><span class="kw">cbind</span>(genenames, ranks_RNAseq)
@@ -528,11 +603,12 @@ ranks_RNAseq &lt;-<span class="st"> </span><span class="kw">cbind</span>(genenam
 <span class="co">#sort ranks in decreasing order</span>
 ranks_RNAseq &lt;-<span class="st"> </span>ranks_RNAseq[<span class="kw">order</span>(<span class="kw">as.numeric</span>(ranks_RNAseq[,<span class="dv">2</span>]),<span class="dt">decreasing =</span> <span class="ot">TRUE</span>),]
 
-<span class="kw">write.table</span>(ranks_RNAseq, <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
+<span class="kw">write.table</span>(ranks_RNAseq, <span class="kw">paste</span>(working_dir,
+                                <span class="st">&quot;Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
             <span class="dt">col.name =</span> <span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names =</span> <span class="ot">FALSE</span>, <span class="dt">quote =</span> <span class="ot">FALSE</span>)</code></pre></div>
 </div>
-<div id="create-expression-file" class="section level2">
-<h2><span class="header-section-number">1.10</span> Create expression file</h2>
+<div id="create-expression-file" class="section level3">
+<h3><span class="header-section-number">1.2.10</span> Create expression file</h3>
 <p>9a. Create an expression file for the enrichment map and save it to a file in the working folder. The optional expression file is similar to the expression matrix except for an additional column on the left edge of the matrix. The field often includes gene description however any text value can be added.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#fix issue with biomart not working because of url redirection</span>
 <span class="kw">options</span>(<span class="dt">RCurlOptions=</span><span class="kw">list</span>(<span class="dt">followlocation=</span><span class="ot">TRUE</span>, <span class="dt">postredir=</span>2L))
@@ -541,9 +617,9 @@ normalized_expression_RNAseq &lt;-<span class="st"> </span><span class="kw">cpm<
 
 <span class="co">#From the rownames parse out the gene name and the geneids</span>
 genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(normalized_expression_RNAseq), 
-function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
+<span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
 geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(normalized_expression_RNAseq), 
-function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]}))
+<span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]}))
 
 EM_expressionFile_RNAseq &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">Name =</span> genenames, normalized_expression_RNAseq)
 <span class="kw">rownames</span>(EM_expressionFile_RNAseq) &lt;-<span class="st"> </span><span class="kw">rownames</span>(normalized_expression_RNAseq)
@@ -551,87 +627,95 @@ EM_expressionFile_RNAseq &lt;-<span class="st"> </span><span class="kw">data.fra
 
 <span class="co">#Add descriptions instead of geneids</span>
 <span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;biomaRt&quot;</span>)}, 
-         <span class="dt">error =</span> function(e) { 
+         <span class="dt">error =</span> <span class="cf">function</span>(e) { 
            <span class="kw">source</span>(<span class="st">&quot;https://bioconductor.org/biocLite.R&quot;</span>)
            <span class="kw">biocLite</span>(<span class="st">&quot;biomaRt&quot;</span>)}, 
          <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;biomaRt&quot;</span>))
-mart =<span class="st"> </span><span class="kw">useMart</span>(<span class="dt">biomart=</span><span class="st">&quot;ENSEMBL_MART_ENSEMBL&quot;</span>, <span class="dt">dataset=</span><span class="st">&quot;hsapiens_gene_ensembl&quot;</span>)
+mart =<span class="st"> </span><span class="kw">useMart</span>(<span class="dt">biomart=</span><span class="st">&quot;ENSEMBL_MART_ENSEMBL&quot;</span>)
+mart =<span class="st"> </span><span class="kw">useDataset</span>(mart, <span class="dt">dataset=</span><span class="st">&quot;hsapiens_gene_ensembl&quot;</span> )
 
 genes =<span class="st"> </span><span class="kw">getBM</span>(<span class="dt">attributes =</span> <span class="kw">c</span>( <span class="st">&#39;hgnc_symbol&#39;</span>, <span class="st">&#39;description&#39;</span>), <span class="dt">filters=</span><span class="st">&#39;hgnc_symbol&#39;</span>, 
               <span class="dt">values=</span>genenames, <span class="dt">mart=</span>mart);
-genes$description =<span class="st"> </span><span class="kw">gsub</span>(<span class="st">&quot;</span><span class="ch">\\</span><span class="st">[Source.*&quot;</span>, <span class="st">&quot;&quot;</span>, genes$description);
+genes<span class="op">$</span>description =<span class="st"> </span><span class="kw">gsub</span>(<span class="st">&quot;</span><span class="ch">\\</span><span class="st">[Source.*&quot;</span>, <span class="st">&quot;&quot;</span>, genes<span class="op">$</span>description);
 
 EM_expressionFile_RNAseq &lt;-<span class="st"> </span><span class="kw">merge</span>(genes,EM_expressionFile_RNAseq,  <span class="dt">all.y=</span><span class="ot">TRUE</span>,<span class="dt">by.x=</span><span class="dv">1</span>, <span class="dt">by.y=</span><span class="dv">1</span>)
 <span class="kw">colnames</span>(EM_expressionFile_RNAseq)[<span class="dv">1</span>] &lt;-<span class="st"> &quot;Name&quot;</span>
 <span class="kw">colnames</span>(EM_expressionFile_RNAseq)[<span class="dv">2</span>] &lt;-<span class="st"> &quot;Description&quot;</span>
 
-<span class="kw">write.table</span>(EM_expressionFile_RNAseq, <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table6_TCGA_OV_RNAseq_expression.txt&quot;</span>, <span class="dt">sep=</span><span class="st">&quot;/&quot;</span>),
+<span class="kw">write.table</span>(EM_expressionFile_RNAseq, 
+            <span class="kw">paste</span>(working_dir,
+                  <span class="st">&quot;Supplementary_Table6_TCGA_OV_RNAseq_expression.txt&quot;</span>, <span class="dt">sep=</span><span class="st">&quot;/&quot;</span>),
             <span class="dt">col.name=</span><span class="ot">TRUE</span>,<span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)
 
 <span class="co">#write out a GSEA classes file. (optional)</span>
-fileConn &lt;-<span class="st"> </span><span class="kw">file</span>(<span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table9_TCGA_OV_RNAseq_classes.cls&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>))
+fileConn &lt;-<span class="st"> </span><span class="kw">file</span>(
+  <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table9_TCGA_OV_RNAseq_classes.cls&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>))
 <span class="kw">writeLines</span>(<span class="kw">c</span>(<span class="kw">paste</span>(<span class="kw">length</span>(classDefinitions_RNASeq[,data_classes]), <span class="st">&quot;4 1&quot;</span>), 
              <span class="kw">paste</span>(<span class="st">&quot;# &quot;</span>, <span class="kw">unique</span>(classDefinitions_RNASeq[,data_classes])[<span class="dv">1</span>], <span class="st">&quot; &quot;</span>,
                    <span class="kw">unique</span>(classDefinitions_RNASeq[,data_classes])[<span class="dv">2</span>], <span class="st">&quot; &quot;</span>,
                    <span class="kw">unique</span>(classDefinitions_RNASeq[,data_classes])[<span class="dv">3</span>], <span class="st">&quot; &quot;</span>,
                    <span class="kw">unique</span>(classDefinitions_RNASeq[,data_classes])[<span class="dv">4</span>])), fileConn)
 <span class="kw">write.table</span>(<span class="kw">t</span>(classDefinitions_RNASeq[,data_classes]), 
-            <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table9_TCGA_OV_RNAseq_classes.cls&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), <span class="dt">col.name=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>,
+            <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table9_TCGA_OV_RNAseq_classes.cls&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
+            <span class="dt">col.name=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>,
             <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>, <span class="dt">append=</span><span class="ot">TRUE</span>)
 <span class="kw">close</span>(fileConn)</code></pre></div>
 </div>
-<div id="examine-results" class="section level2">
-<h2><span class="header-section-number">1.11</span> Examine results</h2>
+<div id="examine-results" class="section level3">
+<h3><span class="header-section-number">1.2.11</span> Examine results</h3>
 <p>9b. Examine gene expression data using heat maps. Heat maps can easily show the separation between sample classes, labeled by colors in the heat map header. By limiting to the most significantly differentially expressed list of genes (FDR-corrected p&lt;0.05) we can verify whether the scoring accurately separates class A from class B.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;pheatmap&quot;</span>)}, 
-         <span class="dt">error =</span> function(e) { 
+         <span class="dt">error =</span> <span class="cf">function</span>(e) { 
           <span class="kw">install.packages</span>(<span class="st">&quot;pheatmap&quot;</span>)}, 
          <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;pheatmap&quot;</span>))
 <span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;RColorBrewer&quot;</span>)}, 
-         <span class="dt">error =</span> function(e) { 
+         <span class="dt">error =</span> <span class="cf">function</span>(e) { 
           <span class="kw">install.packages</span>(<span class="st">&quot;RColorBrewer&quot;</span>)}, 
          <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;RColorBrewer&quot;</span>))
 
 annotation_col &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">SUBTYPE=</span><span class="kw">factor</span>(classDefinitions_RNASeq[,data_classes]))
 <span class="kw">rownames</span>(annotation_col) &lt;-<span class="st"> </span>classDefinitions_RNASeq[,<span class="dv">2</span>]
 
-ann_colors =<span class="st"> </span><span class="kw">list</span>(<span class="dt">SUBTYPE =</span> <span class="kw">c</span>(<span class="dt">Immunoreactive=</span><span class="st">&quot;blue&quot;</span>, <span class="dt">Mesenchymal=</span><span class="st">&quot;red&quot;</span>,<span class="dt">Proliferative =</span> <span class="st">&quot;orange&quot;</span>,<span class="dt">Differentiated=</span><span class="st">&quot;darkgreen&quot;</span>))
+ann_colors =<span class="st"> </span><span class="kw">list</span>(<span class="dt">SUBTYPE =</span> <span class="kw">c</span>(<span class="dt">Immunoreactive=</span><span class="st">&quot;blue&quot;</span>, <span class="dt">Mesenchymal=</span><span class="st">&quot;red&quot;</span>,
+                              <span class="dt">Proliferative =</span> <span class="st">&quot;orange&quot;</span>,<span class="dt">Differentiated=</span><span class="st">&quot;darkgreen&quot;</span>))
 col.pal &lt;-<span class="st"> </span><span class="kw">rev</span>(<span class="kw">brewer.pal</span>(<span class="dv">11</span>, <span class="st">&quot;RdBu&quot;</span>))
 
-genes_to_select &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table)[<span class="kw">which</span>(tt$table$FDR&lt;<span class="fl">0.05</span>)], function(data) 
+genes_to_select &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table)[<span class="kw">which</span>(tt<span class="op">$</span>table<span class="op">$</span>FDR<span class="op">&lt;</span><span class="fl">0.05</span>)], <span class="cf">function</span>(data) 
   {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
 
-matrix_for_heatmap &lt;-<span class="st"> </span><span class="kw">as.matrix</span>(EM_expressionFile_RNAseq[<span class="kw">which</span>(EM_expressionFile_RNAseq[,<span class="dv">1</span>] %in%<span class="st"> </span>genes_to_select ),<span class="dv">3</span>:<span class="kw">dim</span>(EM_expressionFile_RNAseq)[<span class="dv">2</span>] ])
+matrix_for_heatmap &lt;-<span class="st"> </span><span class="kw">as.matrix</span>(EM_expressionFile_RNAseq[<span class="kw">which</span>(EM_expressionFile_RNAseq[,<span class="dv">1</span>] 
+                            <span class="op">%in%</span><span class="st"> </span>genes_to_select ),<span class="dv">3</span><span class="op">:</span><span class="kw">dim</span>(EM_expressionFile_RNAseq)[<span class="dv">2</span>] ])
 
 <span class="kw">class</span>(matrix_for_heatmap) &lt;-<span class="st"> &quot;numeric&quot;</span>
-matrix_for_heatmap[matrix_for_heatmap ==<span class="st"> </span><span class="dv">0</span>] &lt;-<span class="st"> </span><span class="fl">0.0000001</span>
+matrix_for_heatmap[matrix_for_heatmap <span class="op">==</span><span class="st"> </span><span class="dv">0</span>] &lt;-<span class="st"> </span><span class="fl">0.0000001</span>
 <span class="kw">pheatmap</span>(matrix_for_heatmap, <span class="dt">color=</span>col.pal, <span class="dt">scale=</span><span class="st">&quot;row&quot;</span>, 
          <span class="dt">kmeans_k=</span><span class="ot">NA</span>, <span class="dt">show_rownames=</span><span class="ot">FALSE</span>, <span class="dt">show_colnames=</span><span class="ot">FALSE</span>, 
          <span class="dt">main=</span><span class="st">&quot;heatmap top genes(Mesen vs Immuno)&quot;</span>, <span class="dt">cluster_rows=</span><span class="ot">TRUE</span>, 
          <span class="dt">cluster_cols=</span><span class="ot">FALSE</span>, <span class="dt">clustering_distance_rows=</span><span class="st">&quot;correlation&quot;</span>,
          <span class="dt">annotation_col=</span>annotation_col, <span class="dt">annotation_colors=</span>ann_colors)</code></pre></div>
-<p><img src="supplemental_protocol1_rnaseq_files/figure-html/unnamed-chunk-12-1.png" /><!-- --></p>
+<p><img src="supplemental_protocol1_rnaseq_files/figure-html/unnamed-chunk-13-1.png" /><!-- --></p>
 </div>
-<div id="example-of-other-comparisons" class="section level2">
-<h2><span class="header-section-number">1.12</span> Example of other comparisons</h2>
+<div id="example-of-other-comparisons" class="section level3">
+<h3><span class="header-section-number">1.2.12</span> Example of other comparisons</h3>
 <p>Example of other comparison that can be done with this dataset. Rank files for each are also created</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#Immuno vs rest</span>
 tt &lt;-<span class="st"> </span>tt_immunovsrest
-select_genes =<span class="st"> </span><span class="kw">which</span>(tt$table$FDR&lt;<span class="fl">0.05</span>)
+select_genes =<span class="st"> </span><span class="kw">which</span>(tt<span class="op">$</span>table<span class="op">$</span>FDR<span class="op">&lt;</span><span class="fl">0.05</span>)
 <span class="kw">length</span>(select_genes)</code></pre></div>
 <pre><code>## [1] 6119</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table)[select_genes], 
-function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table)[select_genes], 
+<span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
 <span class="kw">head</span>(topgenes_qvalue005)</code></pre></div>
 <pre><code>## [1] &quot;AIM2&quot;   &quot;TFEC&quot;   &quot;GIMAP4&quot; &quot;CD48&quot;   &quot;CD86&quot;   &quot;HAVCR2&quot;</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">write.table</span>(topgenes_qvalue005, 
 <span class="kw">paste</span>(working_dir,<span class="st">&quot;ImmunovsRest_RNAseq_allsignificantgenes.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
 <span class="dt">col.names=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)
 
-ranks_RNAseq =<span class="st"> </span><span class="kw">sign</span>(tt$table$logFC) *<span class="st"> </span>-<span class="kw">log10</span>(tt$table$PValue)
-genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table), function(data) 
+ranks_RNAseq =<span class="st"> </span><span class="kw">sign</span>(tt<span class="op">$</span>table<span class="op">$</span>logFC) <span class="op">*</span><span class="st"> </span><span class="op">-</span><span class="kw">log10</span>(tt<span class="op">$</span>table<span class="op">$</span>PValue)
+genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table), <span class="cf">function</span>(data) 
   {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
-geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table),  function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]})) 
+geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table),  
+                          <span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]})) 
 ranks_RNAseq &lt;-<span class="st"> </span><span class="kw">cbind</span>(genenames, ranks_RNAseq)
 <span class="kw">colnames</span>(ranks_RNAseq) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;GeneName&quot;</span>,<span class="st">&quot;rank&quot;</span>)
 <span class="kw">write.table</span>(ranks_RNAseq, <span class="kw">paste</span>(working_dir,<span class="st">&quot;ImmunovsRest_RNASeq_ranks.rnk&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
@@ -640,21 +724,22 @@ ranks_RNAseq &lt;-<span class="st"> </span><span class="kw">cbind</span>(genenam
 
 <span class="co">#Mesen vs rest data</span>
 tt &lt;-<span class="st"> </span>tt_mesenvsrest
-select_genes =<span class="st"> </span><span class="kw">which</span>(tt$table$FDR&lt;<span class="fl">0.05</span>)
+select_genes =<span class="st"> </span><span class="kw">which</span>(tt<span class="op">$</span>table<span class="op">$</span>FDR<span class="op">&lt;</span><span class="fl">0.05</span>)
 <span class="kw">length</span>(select_genes)</code></pre></div>
 <pre><code>## [1] 6426</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table)[select_genes], 
-function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table)[select_genes], 
+<span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
 <span class="kw">head</span>(topgenes_qvalue005)</code></pre></div>
 <pre><code>## [1] &quot;CRISPLD2&quot; &quot;THBS2&quot;    &quot;FBN1&quot;     &quot;COL5A1&quot;   &quot;COL3A1&quot;   &quot;AEBP1&quot;</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">write.table</span>(topgenes_qvalue005, 
 <span class="kw">paste</span>(working_dir,<span class="st">&quot;MesenvsRest_RNAseq_allsignificantgenes.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
 <span class="dt">col.names=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)
 
-ranks_RNAseq =<span class="st"> </span><span class="kw">sign</span>(tt$table$logFC) *<span class="st"> </span>-<span class="kw">log10</span>(tt$table$PValue)
-genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table), function(data) 
+ranks_RNAseq =<span class="st"> </span><span class="kw">sign</span>(tt<span class="op">$</span>table<span class="op">$</span>logFC) <span class="op">*</span><span class="st"> </span><span class="op">-</span><span class="kw">log10</span>(tt<span class="op">$</span>table<span class="op">$</span>PValue)
+genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table), <span class="cf">function</span>(data) 
   {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
-geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table),  function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]})) 
+geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table),  
+                          <span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]})) 
 ranks_RNAseq &lt;-<span class="st"> </span><span class="kw">cbind</span>(genenames, ranks_RNAseq)
 <span class="kw">colnames</span>(ranks_RNAseq) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;GeneName&quot;</span>,<span class="st">&quot;rank&quot;</span>)
 <span class="kw">write.table</span>(ranks_RNAseq, <span class="kw">paste</span>(working_dir,<span class="st">&quot;MesenvsRest_RNASeq_ranks.rnk&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
@@ -662,21 +747,22 @@ ranks_RNAseq &lt;-<span class="st"> </span><span class="kw">cbind</span>(genenam
 
 <span class="co">#Differentiated vs rest data</span>
 tt &lt;-<span class="st"> </span>tt_diffvsrest
-select_genes =<span class="st"> </span><span class="kw">which</span>(tt$table$FDR&lt;<span class="fl">0.05</span>)
+select_genes =<span class="st"> </span><span class="kw">which</span>(tt<span class="op">$</span>table<span class="op">$</span>FDR<span class="op">&lt;</span><span class="fl">0.05</span>)
 <span class="kw">length</span>(select_genes)</code></pre></div>
 <pre><code>## [1] 5142</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table)[select_genes], 
-function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table)[select_genes], 
+<span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
 <span class="kw">head</span>(topgenes_qvalue005)</code></pre></div>
 <pre><code>## [1] &quot;KCNRG&quot;  &quot;CDHR3&quot;  &quot;SNTN&quot;   &quot;MARCKS&quot; &quot;DNAH12&quot; &quot;KIF19&quot;</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">write.table</span>(topgenes_qvalue005, 
 <span class="kw">paste</span>(working_dir,<span class="st">&quot;DiffvsRest_RNAseq_allsignificantgenes.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
 <span class="dt">col.names=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)
 
-ranks_RNAseq =<span class="st"> </span><span class="kw">sign</span>(tt$table$logFC) *<span class="st"> </span>-<span class="kw">log10</span>(tt$table$PValue)
-genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table), function(data) 
+ranks_RNAseq =<span class="st"> </span><span class="kw">sign</span>(tt<span class="op">$</span>table<span class="op">$</span>logFC) <span class="op">*</span><span class="st"> </span><span class="op">-</span><span class="kw">log10</span>(tt<span class="op">$</span>table<span class="op">$</span>PValue)
+genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table), <span class="cf">function</span>(data) 
   {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
-geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table),  function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]})) 
+geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table),  
+                          <span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]})) 
 ranks_RNAseq &lt;-<span class="st"> </span><span class="kw">cbind</span>(genenames, ranks_RNAseq)
 <span class="kw">colnames</span>(ranks_RNAseq) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;GeneName&quot;</span>,<span class="st">&quot;rank&quot;</span>)
 <span class="kw">write.table</span>(ranks_RNAseq, <span class="kw">paste</span>(working_dir,<span class="st">&quot;DiffvsRest_RNASeq_ranks.rnk&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
@@ -684,25 +770,53 @@ ranks_RNAseq &lt;-<span class="st"> </span><span class="kw">cbind</span>(genenam
 
 <span class="co">#Proliferative vs rest data</span>
 tt &lt;-<span class="st"> </span>tt_prolifvsrest
-select_genes =<span class="st"> </span><span class="kw">which</span>(tt$table$FDR&lt;<span class="fl">0.05</span>)
+select_genes =<span class="st"> </span><span class="kw">which</span>(tt<span class="op">$</span>table<span class="op">$</span>FDR<span class="op">&lt;</span><span class="fl">0.05</span>)
 <span class="kw">length</span>(select_genes)</code></pre></div>
 <pre><code>## [1] 8610</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table)[select_genes], 
-function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table)[select_genes], 
+<span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
 <span class="kw">head</span>(topgenes_qvalue005)</code></pre></div>
 <pre><code>## [1] &quot;FGF17&quot;  &quot;CEL&quot;    &quot;CUX2&quot;   &quot;GFRA3&quot;  &quot;DPYSL5&quot; &quot;CPA1&quot;</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">write.table</span>(topgenes_qvalue005, 
 <span class="kw">paste</span>(working_dir,<span class="st">&quot;ProlifvsRest_RNAseq_allsignificantgenes.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
 <span class="dt">col.names=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)
 
-ranks_RNAseq =<span class="st"> </span><span class="kw">sign</span>(tt$table$logFC) *<span class="st"> </span>-<span class="kw">log10</span>(tt$table$PValue)
-genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table), function(data) 
+ranks_RNAseq =<span class="st"> </span><span class="kw">sign</span>(tt<span class="op">$</span>table<span class="op">$</span>logFC) <span class="op">*</span><span class="st"> </span><span class="op">-</span><span class="kw">log10</span>(tt<span class="op">$</span>table<span class="op">$</span>PValue)
+genenames &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table), <span class="cf">function</span>(data) 
   {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
-geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt$table),  function(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]})) 
+geneids &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>( <span class="kw">rownames</span>(tt<span class="op">$</span>table),  
+                          <span class="cf">function</span>(data) {<span class="kw">unlist</span>(<span class="kw">strsplit</span>(data,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">2</span>]})) 
 ranks_RNAseq &lt;-<span class="st"> </span><span class="kw">cbind</span>(genenames, ranks_RNAseq)
 <span class="kw">colnames</span>(ranks_RNAseq) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;GeneName&quot;</span>,<span class="st">&quot;rank&quot;</span>)
 <span class="kw">write.table</span>(ranks_RNAseq, <span class="kw">paste</span>(working_dir,<span class="st">&quot;ProlifvsRest_RNASeq_ranks.rnk&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
 <span class="dt">col.name =</span> <span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names =</span> <span class="ot">FALSE</span>, <span class="dt">quote =</span> <span class="ot">FALSE</span>)</code></pre></div>
+</div>
+</div>
+<div id="references" class="section level2 unnumbered">
+<h2>References</h2>
+<div id="refs" class="references">
+<div id="ref-TCGA">
+<p>1. International Cancer Genome, C. <em>et al.</em> International network of cancer genome projects. <em>Nature</em> <strong>464,</strong> 993–8 (2010).</p>
+</div>
+<div id="ref-GDC">
+<p>2. Grossman, R. L. <em>et al.</em> Toward a shared vision for cancer genomic data. <em>N Engl J Med</em> <strong>375,</strong> 1109–12 (2016).</p>
+</div>
+<div id="ref-TCGABiolinks">
+<p>3. Colaprico, A. <em>et al.</em> TCGAbiolinks: An r/bioconductor package for integrative analysis of tcga data. <em>Nucleic Acids Res</em> <strong>44,</strong> e71 (2016).</p>
+</div>
+<div id="ref-MapSplice">
+<p>4. Wang, K. <em>et al.</em> MapSplice: Accurate mapping of rna-seq reads for splice junction discovery. <em>Nucleic Acids Res</em> <strong>38,</strong> e178 (2010).</p>
+</div>
+<div id="ref-RSEM">
+<p>5. Li, B. &amp; Dewey, C. N. RSEM: Accurate transcript quantification from rna-seq data with or without a reference genome. <em>BMC Bioinformatics</em> <strong>12,</strong> 323 (2011).</p>
+</div>
+<div id="ref-OV">
+<p>6. Verhaak, R. G. <em>et al.</em> Prognostically relevant gene signatures of high-grade serous ovarian carcinoma. <em>J Clin Invest</em> <strong>123,</strong> 517–25 (2013).</p>
+</div>
+<div id="ref-edgeR">
+<p>7. Robinson, M. D., McCarthy, D. J. &amp; Smyth, G. K. EdgeR: A bioconductor package for differential expression analysis of digital gene expression data. <em>Bioinformatics</em> <strong>26,</strong> 139–40 (2010).</p>
+</div>
+</div>
 </div>
 </div>
 

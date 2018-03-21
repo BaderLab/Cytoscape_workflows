@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Ruth Isserlin" />
+
+<meta name="date" content="2018-03-21" />
+
+<title>Supplementary Protocol 3 – Pathway Enrichment Analysis in R using ROAST and Camera</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/paper.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #0000ff; } /* Keyword */
+code > span.ch { color: #008080; } /* Char */
+code > span.st { color: #008080; } /* String */
+code > span.co { color: #008000; } /* Comment */
+code > span.ot { color: #ff4000; } /* Other */
+code > span.al { color: #ff0000; } /* Alert */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #008000; font-weight: bold; } /* Warning */
+code > span.cn { } /* Constant */
+code > span.sc { color: #008080; } /* SpecialChar */
+code > span.vs { color: #008080; } /* VerbatimString */
+code > span.ss { color: #008080; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { } /* Variable */
+code > span.cf { color: #0000ff; } /* ControlFlow */
+code > span.op { } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #ff4000; } /* Preprocessor */
+code > span.do { color: #008000; } /* Documentation */
+code > span.an { color: #008000; } /* Annotation */
+code > span.cv { color: #008000; } /* CommentVar */
+code > span.at { } /* Attribute */
+code > span.in { color: #008000; } /* Information */
+</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 64px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+
+.section h2 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h3 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h4 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h5 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h6 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = false;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-inverse  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Enrichment Map Protocol</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="https://baderlab.github.io/Cytoscape_workflows/">
+    <span class="fa fa-home"></span>
+     
+    Home
+  </a>
+</li>
+<li>
+  <a href="https://www.biorxiv.org/content/early/2017/12/12/232835">
+    <span class="fa fa-newspaper-o"></span>
+     
+    bioRxiv paper
+  </a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    <span class="fa fa-list"></span>
+     
+    Table of Contents
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li class="dropdown-header">Supplementary Protocols</li>
+    <li>
+      <a href="Download_TCGA_data.html">Download TCGA Data</a>
+    </li>
+    <li>
+      <a href="supplemental_protocol1_rnaseq.html">Process RNASeq data</a>
+    </li>
+    <li>
+      <a href="supplemental_protocol2_microarray.html">Process Microarray data</a>
+    </li>
+    <li class="divider"></li>
+    <li class="dropdown-header">Protocol 2</li>
+    <li>
+      <a href="Protocol2_createEM.html">Create Enrichment Map</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Supplementary Protocol 3 – Pathway Enrichment Analysis in R using ROAST and Camera</h1>
+<h4 class="author"><em>Ruth Isserlin</em></h4>
+<h4 class="date"><em>2018-03-21</em></h4>
+
+</div>
+
+
+<p>Bioinformatics analysis is often carried out in R. Pathway enrichment analysis can be also performed directly in R. This protocol will demonstrate the use of R packages ROAST<span class="citation"><sup>1</sup></span> and Camera<span class="citation"><sup>2</sup></span>. Each method requires an expressionSet that minimally contains a matrix of expression values for a set of genes and conditions. The expression matrix generated in supplementary protocol part 1 or 2 is suitable for the analysis.</p>
+<div id="background-and-setup-for-all-supplmentary-protocols" class="section level1">
+<h1><span class="header-section-number">1</span> Background and Setup for all Supplmentary Protocols</h1>
+<div id="equipment" class="section level2">
+<h2><span class="header-section-number">1.1</span> Equipment</h2>
+<div id="hardware-requirements" class="section level3">
+<h3><span class="header-section-number">1.1.1</span> Hardware requirements:</h3>
+<ul>
+<li>A recent personal computer with at least 8 gigabytes of memory (RAM). Software requirements:</li>
+<li>The R statistical computing environment (<a href="http://www.r-project.org/" class="uri">http://www.r-project.org/</a>). We suggest using the integrated development environment RStudio (<a href="https://www.rstudio.com/" class="uri">https://www.rstudio.com/</a>).</li>
+<li>Required R packages: Biobase, Limma and GSA are available from Bioconductor (<a href="https://www.bioconductor.org/" class="uri">https://www.bioconductor.org/</a>)</li>
+</ul>
+</div>
+<div id="data-requirements" class="section level3">
+<h3><span class="header-section-number">1.1.2</span> Data requirements:</h3>
+<ul>
+<li>Supplementary_Table10_TCGA_Microarray_rmanormalized.txt corresponds to the RMA normalized Affymetrix mRNA transcript expression data for serous ovarian cancer samples as downloaded from the GDC portal65. Normalization is required to compute differential gene expression values across subtypes, as performed in Supplementary Protocol 1A.</li>
+<li>Supplementary_Table12_TCGA_RNASeq_rawcounts.txt corresponds to read counts per mRNA transcript determined using the RSEM method. These counts can be used to compare gene expression between subtypes using the edgeR analysis tool, as performed in Supplementary Protocol 1B. The counts are not pre-normalized and the normalization step using edgeR is part of the protocol.</li>
+<li>Supplementary_Table11_Microarray_classdefinitions.txt and Supplementary_Table13_RNASeq_classdefinitions.txt define the subtype classification of ovarian cancer samples (immunoreactive, mesenchymal, differentiated, proliferative) (Verhaak et al.<span class="citation"><sup>3</sup></span> supplementary table 1, column 3). This information is used to extract two subgroups of interest, mesenchymal and immunoreactive.</li>
+</ul>
+</div>
+<div id="equipment-setup" class="section level3">
+<h3><span class="header-section-number">1.1.3</span> Equipment Setup</h3>
+<ul>
+<li>Download and install R from <a href="http://cran.r-project.org/" class="uri">http://cran.r-project.org/</a></li>
+<li>Download and install RStudio from <a href="https://www.rstudio.com/" class="uri">https://www.rstudio.com/</a> (optional, but recommended)</li>
+<li>Launch R or RStudio</li>
+<li><p>Install required Bioconductor packages. Enter the following commands in the R command line (also see <a href="https://www.bioconductor.org/install/" class="uri">https://www.bioconductor.org/install/</a>):</p>
+<ul>
+<li>source(“<a href="http://www.Bioconductor.org/biocLite.R" class="uri">http://www.Bioconductor.org/biocLite.R</a>”)</li>
+<li>biocLite(“BiocUpgrade”)</li>
+<li>biocLite(c(“Biobase”,“limma”,”edgeR”,”GSA”,”locfit”))</li>
+<li>install.packages(c(“pheatmap”, ”RColorBrewer”, ”gProfileR”, ”RJSONIO”, ”httr”))</li>
+</ul></li>
+<li><p>If the required packages are already installed you may receive a prompt to update these. The prompt window will ask you about updating the packages:</p>
+<ul>
+<li>Update all/some/none? [a/s/n]</li>
+<li>Type ‘a’ without quotes and hit enter.</li>
+</ul></li>
+<li><p>Load libraries into the R session using the example below. Loading of libraries is required every time R is re-opened.</p>
+<ul>
+<li>library(“limma”)</li>
+</ul></li>
+<li>All R files are available at <a href="https://github.com/BaderLab/EM-tutorials-docker/tree/master/R_scripts" class="uri">https://github.com/BaderLab/EM-tutorials-docker/tree/master/R_scripts</a></li>
+<li><p>Alternately, R notebooks (use R markdown and creates a notebook similar to Jupyter notebooks) of this protocol are available at <a href="https://github.com/BaderLab/Cytoscape_workflows/tree/master/EnrichmentMapPipeline" class="uri">https://github.com/BaderLab/Cytoscape_workflows/tree/master/EnrichmentMapPipeline</a></p></li>
+</ul>
+</div>
+<div id="data-setup" class="section level3">
+<h3><span class="header-section-number">1.1.4</span> Data setup</h3>
+<ul>
+<li>Download Supplementary Tables 10-13 to a dedicated folder of your computer. The first step of your R script will change the working directory of R to this folder.</li>
+<li>As text editors sometimes add invisible characters to text copied from PDF files, copying and pasting from this document is not recommended. The R scripts or the R notebook available in the above URLs should be used instead.</li>
+<li>Setting the current directory and loading packages (libraries) are the required first and second steps of each protocol. These are needed each time a new session is opened in R.</li>
+</ul>
+</div>
+</div>
+<div id="pathway-enrichment-analysis-in-r" class="section level2">
+<h2><span class="header-section-number">1.2</span> Pathway Enrichment Analysis in R</h2>
+<div id="load-required-packages" class="section level3">
+<h3><span class="header-section-number">1.2.1</span> Load required packages</h3>
+<ol start="22" style="list-style-type: decimal">
+<li>Load required Bioconductor packages into R and set working folder to the location of Supplementary Files 1-4.</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#working_dir &lt;- “path/to/data”</span>
+working_dir &lt;-<span class="st"> &quot;./data&quot;</span>
+
+<span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;limma&quot;</span>)}, 
+         <span class="dt">error =</span> <span class="cf">function</span>(e) { <span class="kw">source</span>(<span class="st">&quot;https://bioconductor.org/biocLite.R&quot;</span>)
+           <span class="kw">biocLite</span>(<span class="st">&quot;limma&quot;</span>)}, 
+         <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;limma&quot;</span>))
+
+<span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;GSA&quot;</span>)}, 
+         <span class="dt">error =</span> <span class="cf">function</span>(e) { <span class="kw">source</span>(<span class="st">&quot;https://bioconductor.org/biocLite.R&quot;</span>)
+           <span class="kw">biocLite</span>(<span class="st">&quot;GSA&quot;</span>)}, 
+         <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;GSA&quot;</span>))
+
+<span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;RCurl&quot;</span>)}, 
+         <span class="dt">error =</span> <span class="cf">function</span>(e) { 
+          <span class="kw">install.packages</span>(<span class="st">&quot;RCurl&quot;</span>)}, 
+         <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;RCurl&quot;</span>))</code></pre></div>
+<pre><code>## Loading required package: bitops</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># This protocol can use RNA-seq expression data or microarray expression data. </span>
+<span class="co">#Specify which you would like to use</span>
+dataType_rnaseq &lt;-<span class="st"> </span><span class="ot">TRUE</span>
+
+<span class="co">#The field in the class definition file that defines the classes of the data.</span>
+data_classes &lt;-<span class="st"> &quot;SUBTYPE&quot;</span>
+
+<span class="co">#string to name the analysis</span>
+analysis_name &lt;-<span class="st"> &quot;Mesen_vs_Immuno&quot;</span>
+
+<span class="co">#from supplmentary protocol 1</span>
+expression_file &lt;-<span class="st"> &quot;Supplementary_Table6_TCGA_OV_RNAseq_expression.txt&quot;</span></code></pre></div>
+<ol start="23" style="list-style-type: decimal">
+<li>Load in the gene sets from a GMT file.</li>
+</ol>
+</div>
+<div id="download-the-latest-pathway-definition-file-from-the-updated-baderlab-geneset-files" class="section level3">
+<h3><span class="header-section-number">1.2.2</span> Download the latest pathway definition file from the updated baderlab geneset files</h3>
+<p>Only Human, Mouse and Rat gene set files are currently available on the baderlab downloads site. If you are working with a species other than human (and it is either rat or mouse) change the gmt_url below to correct species. Check <a href="http://download.baderlab.org/EM_Genesets/current_release/">here</a> to see all available species.</p>
+<p>This can be done automatically through R or can be done manually through the website. To download it programmatically follow below:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">gmt_url =<span class="st"> &quot;http://download.baderlab.org/EM_Genesets/current_release/Human/symbol/&quot;</span>
+
+<span class="co">#list all the files on the server</span>
+filenames =<span class="st"> </span><span class="kw">getURL</span>(gmt_url)
+tc =<span class="st"> </span><span class="kw">textConnection</span>(filenames)
+contents =<span class="st"> </span><span class="kw">readLines</span>(tc)
+<span class="kw">close</span>(tc)
+
+<span class="co">#get the gmt that has all the pathways and does not include terms </span>
+<span class="co">#inferred from electronic annotations(IEA)</span>
+<span class="co">#start with gmt file that has pathways only</span>
+rx =<span class="st"> </span><span class="kw">gregexpr</span>(<span class="st">&quot;(?&lt;=&lt;a href=</span><span class="ch">\&quot;</span><span class="st">)(.*.GOBP_AllPathways_no_GO_iea.*.)(.gmt)(?=</span><span class="ch">\&quot;</span><span class="st">&gt;)&quot;</span>,
+  contents, <span class="dt">perl =</span> <span class="ot">TRUE</span>)
+gmt_file =<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">regmatches</span>(contents, rx))
+
+dest_gmt_file &lt;-<span class="st"> </span><span class="kw">paste</span>(working_dir,<span class="kw">paste</span>(<span class="st">&quot;Supplementary_Table3_&quot;</span>,gmt_file,<span class="dt">sep=</span><span class="st">&quot;&quot;</span>) ,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>)
+
+<span class="kw">download.file</span>(
+    <span class="kw">paste</span>(gmt_url,gmt_file,<span class="dt">sep=</span><span class="st">&quot;&quot;</span>),
+    <span class="dt">destfile=</span>dest_gmt_file
+)</code></pre></div>
+<p>Load in the newly downlaoded gmt file</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#if you haven&#39;t automatically downloaded the gmt file set </span>
+<span class="co">#the path to the gmt file below.</span>
+gmt_file &lt;-<span class="st"> </span>dest_gmt_file
+
+<span class="kw">capture.output</span>(
+   genesets &lt;-<span class="st"> </span><span class="kw">GSA.read.gmt</span>(gmt_file),
+    <span class="dt">file=</span><span class="st">&quot;./gsea_load_output.txt&quot;</span>
+   )</code></pre></div>
+</div>
+<div id="create-dataset-to-use-with-cameracamera-and-roastroast" class="section level3">
+<h3><span class="header-section-number">1.2.3</span> Create dataset to use with Camera<span class="citation"><sup>2</sup></span> and ROAST<span class="citation"><sup>1</sup></span></h3>
+<ol start="24" style="list-style-type: decimal">
+<li>Camera<span class="citation"><sup>2</sup></span> and ROAST<span class="citation"><sup>1</sup></span> expect the gene sets to be a list of vectors where the slot name of each vector corresponds to the gene-set identifier, i.e. the name of the gene set however the GSA.read.gmt method loads the GMT file as an object with a list of gene set names and a list of gene sets. Add the gene set names to the gene sets vector to create a list of vectors required by ROAST<span class="citation"><sup>1</sup></span> and Camera<span class="citation"><sup>2</sup></span>.</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">names</span>(genesets<span class="op">$</span>genesets) &lt;-<span class="st"> </span>genesets<span class="op">$</span>geneset.names</code></pre></div>
+<ol start="25" style="list-style-type: decimal">
+<li>Specify the expression dataset to be used for the analysis. You can use the MinimalSet from Supplementary protocol 1A or the DGEList variable d from Supplementary protocol 1B. For our RNAseq dataset, each row of the expression set is annotated with gene symbol and EntrezGene ID separated by “|”. To match the gene set file we need to remove the EntrezGene IDs from the row names. We choose to use gene symbols to simplify interpretation of enriched pathways and associated genes.</li>
+</ol>
+<p><strong>(optional) Recreate the DGEList from supplementary protocol rnaseq (Steps 1 -5 in Supplementary protocol 1 rnaseq) or if you are within the same sesison you can use the d variable.</strong></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">if</span>(dataType_rnaseq){
+      <span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;edgeR&quot;</span>)}, 
+               <span class="dt">error =</span> <span class="cf">function</span>(e) { <span class="kw">source</span>(<span class="st">&quot;https://bioconductor.org/biocLite.R&quot;</span>)
+                 <span class="kw">biocLite</span>(<span class="st">&quot;edgeR&quot;</span>)}, 
+               <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;edgeR&quot;</span>))
+      
+      RNAseq &lt;-<span class="st"> </span><span class="kw">read.table</span>( 
+        <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table12_TCGA_RNASeq_rawcounts.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
+        <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)
+      classDefinitions_RNAseq &lt;-<span class="kw">read.table</span>(
+        <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table13_RNASeq_classdefinitions.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>),
+        <span class="dt">header =</span> <span class="ot">TRUE</span>,  <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)
+      
+      cpms &lt;-<span class="st"> </span><span class="kw">cpm</span>(RNAseq)
+      keep &lt;-<span class="st"> </span><span class="kw">rowSums</span>(cpms <span class="op">&gt;</span><span class="st"> </span><span class="dv">1</span>) <span class="op">&gt;=</span><span class="st"> </span><span class="dv">50</span>
+      counts &lt;-<span class="st"> </span>RNAseq [keep,]
+      
+      <span class="co">#round counts to create whole numbers</span>
+      counts &lt;-<span class="st"> </span><span class="kw">round</span>(counts)
+      
+      exclude &lt;-<span class="st"> </span><span class="kw">rownames</span>(counts)[<span class="kw">union</span>(<span class="kw">grep</span>(<span class="st">&quot;</span><span class="ch">\\</span><span class="st">?&quot;</span>,<span class="kw">rownames</span>(counts)), <span class="kw">grep</span>(<span class="st">&quot;^LOC&quot;</span>, 
+                                                              <span class="kw">rownames</span>(counts)))]
+      counts &lt;-<span class="st"> </span>counts[<span class="kw">which</span>(<span class="op">!</span><span class="kw">rownames</span>(counts) <span class="op">%in%</span><span class="st"> </span>exclude),]
+      
+      d &lt;-<span class="st"> </span><span class="kw">DGEList</span>(<span class="dt">counts=</span>counts, <span class="dt">group=</span>classDefinitions_RNAseq[,data_classes])
+      d &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(d)
+      
+      d &lt;-<span class="st"> </span><span class="kw">estimateCommonDisp</span>(d)
+      d &lt;-<span class="st"> </span><span class="kw">estimateTagwiseDisp</span>(d)
+      
+      temp_names &lt;-<span class="st"> </span><span class="kw">rownames</span>(d)
+      <span class="kw">rownames</span>(d) &lt;-<span class="st"> </span>
+<span class="st">      </span><span class="kw">unlist</span>(<span class="kw">lapply</span>(temp_names,<span class="cf">function</span>(x){ <span class="kw">unlist</span>(<span class="kw">strsplit</span>(x,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">|&quot;</span>))[<span class="dv">1</span>]}))
+      
+      data_for_gs_analysis &lt;-<span class="st"> </span>d
+      
+      classes &lt;-<span class="st"> </span>data_for_gs_analysis<span class="op">$</span>samples<span class="op">$</span>group
+}</code></pre></div>
+<pre><code>## Warning: package &#39;edgeR&#39; was built under R version 3.4.3</code></pre>
+<p>Or alternately load data as a MinimalSet from microarray data (Steps 9 - 14 in Supplementary protocol 2 microarray)</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">if</span>(<span class="op">!</span>dataType_rnaseq){
+  <span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;Biobase&quot;</span>)}, 
+         <span class="dt">error =</span> <span class="cf">function</span>(e) { 
+           <span class="kw">source</span>(<span class="st">&quot;https://bioconductor.org/biocLite.R&quot;</span>)
+           <span class="kw">biocLite</span>(<span class="st">&quot;Biobase&quot;</span>)}, 
+         <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;Biobase&quot;</span>))
+  
+    <span class="co">#load in files</span>
+    expressionMatrix &lt;-<span class="st"> </span><span class="kw">as.matrix</span>(<span class="kw">read.table</span>(
+      <span class="kw">paste</span>(working_dir, <span class="st">&quot;Supplementary_Table1_TCGA_Microarray_rmanormalized.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
+      <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>))
+    classDefinitions &lt;-<span class="st"> </span><span class="kw">read.table</span>( 
+      <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table3_Microarray_classdefinitions.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
+      <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)
+    <span class="kw">identical</span>(<span class="kw">colnames</span>(expressionMatrix), classDefinitions<span class="op">$</span>patient)
+    
+    <span class="co">#create minimal set</span>
+    minimalSet &lt;-<span class="st"> </span><span class="kw">ExpressionSet</span>(<span class="dt">assayData=</span>expressionMatrix)
+    classes &lt;-<span class="st"> </span><span class="kw">factor</span>(classDefinitions[,data_classes])
+    
+    <span class="co">#create model</span>
+    modelDesign &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span><span class="dv">0</span> <span class="op">+</span><span class="st"> </span>classes)
+        
+    <span class="co">#assign data set for the analysis</span>
+    data_for_gs_analysis &lt;-<span class="st"> </span>minimalSet
+}</code></pre></div>
+<p>If you haven’t defined the data above using RNAseq data or microarray data, Set data to be your DGEList of MinimalSet.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#Should be a minimalSet or DGEList</span>
+<span class="co">#data_for_gs_analysis &lt;- data you want to use for the analysis.  </span>
+<span class="co">#classes &lt;- class definitions for each of the samples in the dataset</span></code></pre></div>
+</div>
+<div id="filter-genesets-to-only-contain-genes-found-in-the-analysis-set" class="section level3">
+<h3><span class="header-section-number">1.2.4</span> Filter genesets to only contain genes found in the analysis set</h3>
+<ol start="26" style="list-style-type: decimal">
+<li>Camera<span class="citation"><sup>2</sup></span> and ROAST<span class="citation"><sup>1</sup></span> require that the gene sets are filtered such that all genes in gene sets have expression values in the dataset. Use function in limma (ids2indices) to convert gene identifiers in the geneset to indices in the dataset.</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">genesets_filtered &lt;-<span class="st"> </span><span class="kw">ids2indices</span>(genesets<span class="op">$</span>genesets, <span class="kw">rownames</span>(data_for_gs_analysis), 
+<span class="dt">remove.empty=</span><span class="ot">TRUE</span>)</code></pre></div>
+<ol start="27" style="list-style-type: decimal">
+<li>Filter the gene sets according to their size, following the previous step of filtering by availability of expression data. Here we only include sets with more than 10 and less than 500 genes.</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">geneset_sizes &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>(genesets_filtered, length))
+geneset_indices &lt;-<span class="st"> </span><span class="kw">which</span>(geneset_sizes<span class="op">&gt;=</span><span class="dv">15</span> <span class="op">&amp;</span><span class="st"> </span>geneset_sizes<span class="op">&lt;</span><span class="dv">200</span>)</code></pre></div>
+</div>
+<div id="create-design-matrix-and-contrast" class="section level3">
+<h3><span class="header-section-number">1.2.5</span> Create design matrix and contrast</h3>
+<ol start="28" style="list-style-type: decimal">
+<li>Create the design matrix and contrast we want to test for. In this example we are looking for pathways differential between the Mesenchymal and Immunoreactive subtypes.</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">design &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span><span class="dv">0</span> <span class="op">+</span><span class="st"> </span>classes)
+
+contrast_mesenvsimmuno &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>(
+  <span class="dt">mesenvsimmuno =</span><span class="st">&quot;classesImmunoreactive-classesMesenchymal&quot;</span>,<span class="dt">levels=</span>design)</code></pre></div>
+</div>
+<div id="run-roastroast" class="section level3">
+<h3><span class="header-section-number">1.2.6</span> Run ROAST<span class="citation"><sup>1</sup></span></h3>
+<ol start="29" style="list-style-type: decimal">
+<li>Run enrichment analysis and format the results to the ‘generic’ file format of Enrichment Map. Ths is a tab-delimited file that includes a gene set name, gene set description, p-value, FDR, phenotype and a comma-separated list of associated genes for every detected pathway. Depending on your dataset and computer, this command could take from a few minutes to an hour to run. If you receive the warning “In dnbinom(q, size = size, mu = mu, log = TRUE) : non-integer x”, the software has encountered unexpected non-integer values of gene expression, often indicating problems with upstream analysis such as suboptimal pre-processing or normalization procedures. A simple fix of rounding gene expression values may fix the error (data_for_gs_analysis<span class="math inline">\(counts &lt;- round(data_for_gs_analysis\)</span>counts)), however it should be investigated further.</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mroast_results &lt;-<span class="st"> </span><span class="kw">mroast</span>(data_for_gs_analysis, genesets_filtered[geneset_indices],
+                         design,<span class="dt">contrast=</span>contrast_mesenvsimmuno, <span class="dt">nrot=</span><span class="dv">10000</span>)
+mroast_descr &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>(<span class="kw">rownames</span>(mroast_results), 
+                              <span class="cf">function</span>(x){<span class="kw">unlist</span>(<span class="kw">strsplit</span>(x,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">%&quot;</span>))[<span class="dv">1</span>]}))</code></pre></div>
+</div>
+<div id="create-generic-enrichment-map-file-from-roastroast-results" class="section level3">
+<h3><span class="header-section-number">1.2.7</span> Create generic enrichment map file from ROAST<span class="citation"><sup>1</sup></span> results</h3>
+<ol start="30" style="list-style-type: decimal">
+<li>Inspect the results returned from ROAST<span class="citation"><sup>1</sup></span>. The column “Direction” shows whether the gene set is enriched for up-regulated genes or down-regulated genes. To ensure compatibility with Enrichment Map, convert these values such that 1 represents up-regulated -1 represents down-regulated genes.</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mroast_results_file &lt;-<span class="st"> &quot;mroast_results_generic_em.txt&quot;</span>
+
+Phenotype &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>(mroast_results[,<span class="st">&quot;Direction&quot;</span>],<span class="cf">function</span>(x)
+    {<span class="cf">if</span>(x<span class="op">==</span><span class="st">&quot;Up&quot;</span>){<span class="dv">1</span>}<span class="cf">else</span>{(<span class="op">-</span><span class="dv">1</span>)}}))
+genes &lt;-<span class="st"> </span><span class="kw">c</span>()
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(<span class="kw">rownames</span>(mroast_results))){
+    current_geneset &lt;-<span class="st"> </span><span class="kw">unlist</span>(genesets_filtered
+        [ <span class="kw">which</span>( <span class="kw">names</span>(genesets_filtered) <span class="op">%in%</span><span class="st"> </span><span class="kw">rownames</span>(mroast_results)[i])])
+    current_genes &lt;-<span class="st"> </span><span class="kw">c</span>()
+        <span class="cf">for</span>(j <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(current_geneset)){
+            <span class="cf">if</span>(j<span class="op">==</span><span class="kw">length</span>(current_geneset)){
+                current_genes &lt;-<span class="st"> </span><span class="kw">paste</span>(current_genes, 
+                    <span class="kw">rownames</span>(data_for_gs_analysis)[current_geneset[j]], 
+<span class="dt">sep=</span><span class="st">&quot;&quot;</span>)
+            } <span class="cf">else</span> {
+                current_genes &lt;-<span class="st"> </span><span class="kw">paste</span>(current_genes, 
+                    <span class="kw">rownames</span>(data_for_gs_analysis)[current_geneset[j]],
+<span class="st">&quot;,&quot;</span>, <span class="dt">sep=</span><span class="st">&quot;&quot;</span>)
+            }
+        }
+        genes &lt;-<span class="st"> </span><span class="kw">rbind</span>(genes, current_genes)
+    }
+<span class="kw">rownames</span>(genes) &lt;-<span class="st"> </span><span class="kw">rownames</span>(mroast_results)
+
+mroast_results_generic_em &lt;-<span class="st"> </span><span class="kw">data.frame</span>( <span class="kw">rownames</span>(mroast_results), mroast_descr, 
+    <span class="dt">PValue=</span>mroast_results[,<span class="st">&quot;PValue&quot;</span>], <span class="dt">FDR=</span>mroast_results[,<span class="st">&quot;FDR&quot;</span>], Phenotype, genes)
+<span class="kw">write.table</span>(mroast_results_generic_em, <span class="kw">paste</span>(working_dir,mroast_results_file,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
+    <span class="dt">col.name=</span><span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>) </code></pre></div>
+</div>
+<div id="run-cameracamera" class="section level3">
+<h3><span class="header-section-number">1.2.8</span> Run Camera<span class="citation"><sup>2</sup></span></h3>
+<ol start="31" style="list-style-type: decimal">
+<li>Run pathway enrichment analysis with the Camera<span class="citation"><sup>2</sup></span> R package. The analysis starts with the same files as ROAST<span class="citation"><sup>1</sup></span> (see first four first steps of Supplementary Protocol 1C).</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">camera_results_file &lt;-<span class="st"> &quot;camera_results_generic_em.txt&quot;</span></code></pre></div>
+</div>
+<div id="create-generic-enrichment-map-file-from-cameracamera-results" class="section level3">
+<h3><span class="header-section-number">1.2.9</span> Create generic enrichment map file from Camera<span class="citation"><sup>2</sup></span> results</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">camera_results &lt;-<span class="st"> </span><span class="kw">camera</span>(data_for_gs_analysis, 
+    genesets_filtered[geneset_indices], design, <span class="dt">contrast=</span>contrast_mesenvsimmuno)
+camera_descr &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>(<span class="kw">rownames</span>(camera_results), 
+    <span class="cf">function</span>(x){<span class="kw">unlist</span>(<span class="kw">strsplit</span>(x,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">%&quot;</span>))[<span class="dv">1</span>]}))
+camera_Phenotype &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>(camera_results[,<span class="st">&quot;Direction&quot;</span>], 
+    <span class="cf">function</span>(x){<span class="cf">if</span>(x<span class="op">==</span><span class="st">&quot;Up&quot;</span>){<span class="dv">1</span>}<span class="cf">else</span>{(<span class="op">-</span><span class="dv">1</span>)}}))
+
+
+camera_genes &lt;-<span class="st"> </span><span class="kw">c</span>()
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(<span class="kw">rownames</span>(camera_results))){
+    current_geneset &lt;-<span class="st"> </span><span class="kw">unlist</span>( 
+        genesets_filtered[ <span class="kw">which</span>( <span class="kw">names</span>( genesets_filtered ) <span class="op">%in%</span><span class="st"> </span><span class="kw">rownames</span>(camera_results)[i])])
+    current_genes &lt;-<span class="st"> </span><span class="kw">c</span>()
+    <span class="cf">for</span>(j <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(current_geneset)){
+        <span class="cf">if</span>(j<span class="op">==</span><span class="kw">length</span>(current_geneset)){
+            current_genes &lt;-<span class="st"> </span><span class="kw">paste</span>( current_genes, 
+                <span class="kw">rownames</span>(data_for_gs_analysis) [current_geneset[j]],
+<span class="dt">sep=</span><span class="st">&quot;&quot;</span>)
+        } <span class="cf">else</span> {
+            current_genes &lt;-<span class="st"> </span><span class="kw">paste</span>( current_genes, 
+                <span class="kw">rownames</span>(data_for_gs_analysis)[ current_geneset[j]], <span class="st">&quot;,&quot;</span>, 
+<span class="dt">sep=</span><span class="st">&quot;&quot;</span>)
+        }
+    }
+    camera_genes &lt;-<span class="st"> </span><span class="kw">rbind</span>(camera_genes, current_genes)
+}
+<span class="kw">rownames</span>(camera_genes) &lt;-<span class="st"> </span><span class="kw">rownames</span>(camera_results)
+
+camera_results_generic_em &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="kw">rownames</span>(camera_results), camera_descr, 
+    <span class="dt">PValue =</span> camera_results[,<span class="st">&quot;PValue&quot;</span>], <span class="dt">FDR=</span>camera_results[,<span class="st">&quot;FDR&quot;</span>], Phenotype, genes )
+<span class="kw">write.table</span>(camera_results_generic_em, <span class="kw">paste</span>(working_dir,camera_results_file,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
+    <span class="dt">col.name=</span><span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)</code></pre></div>
+</div>
+<div id="create-enrichment-map" class="section level3">
+<h3><span class="header-section-number">1.2.10</span> Create Enrichment Map</h3>
+<p>The results from Camera<span class="citation"><sup>2</sup></span> or ROAST<span class="citation"><sup>1</sup></span> can be input to Enrichment Map, following the protocol(start from step 6) in the main text.</p>
+</div>
+<div id="optinal-create-an-enrichment-map-directly-from-r" class="section level3">
+<h3><span class="header-section-number">1.2.11</span> (Optinal) Create an Enrichment map directly from R</h3>
+<p>Optional: Build Enrichment map from the above results</p>
+<p>Make sure that you have launch cytoscape and installed all required apps as listed in the main Protocol (Step 1 - 4)</p>
+<p>Build a network with Camera<span class="citation"><sup>2</sup></span> results:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#use easy cyRest library to communicate with cytoscape.</span>
+
+<span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(RCy3)}, 
+         <span class="dt">error =</span> <span class="cf">function</span>(e) { <span class="kw">install_github</span>(<span class="st">&quot;cytoscape/RCy3&quot;</span>)}, <span class="dt">finally =</span> <span class="kw">library</span>(RCy3))
+
+<span class="co">#defined threshold for GSEA enrichments (need to be strings for cyrest call)</span>
+pvalue_threshold &lt;-<span class="st"> &quot;0.05&quot;</span>
+qvalue_threshold &lt;-<span class="st"> &quot;0.001&quot;</span>
+
+similarity_threshold &lt;-<span class="st"> &quot;0.25&quot;</span>
+similarity_metric =<span class="st"> &quot;JACCARD&quot;</span>
+
+generic_gmt_file &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="kw">getwd</span>(),gmt_file,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>)
+
+cur_model_name &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;camera&quot;</span>,analysis_name,<span class="dt">sep=</span><span class="st">&quot;_&quot;</span>)
+results_filename &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="kw">getwd</span>(),working_dir,camera_results_file,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>)
+
+#######################################
+<span class="co">#create EM - camera results</span>
+#######################################
+current_network_name &lt;-<span class="st"> </span><span class="kw">paste</span>(cur_model_name,pvalue_threshold,qvalue_threshold,<span class="dt">sep=</span><span class="st">&quot;_&quot;</span>)
+
+em_command =<span class="st"> </span><span class="kw">paste</span>(<span class="st">&#39;enrichmentmap build analysisType=&quot;generic&quot; gmtFile=&#39;</span>,generic_gmt_file,
+                   <span class="st">&#39;pvalue=&#39;</span>,pvalue_threshold, <span class="st">&#39;qvalue=&#39;</span>,qvalue_threshold,
+                   <span class="st">&#39;similaritycutoff=&#39;</span>,similarity_threshold,
+                   <span class="st">&#39;coefficients=&#39;</span>,similarity_metric,<span class="st">&#39;enrichmentsDataset1=&#39;</span>,results_filename,
+                   <span class="st">&#39;expressionDataset1=&#39;</span>,<span class="kw">paste</span>(<span class="kw">getwd</span>(),working_dir,expression_file,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>),
+                   <span class="dt">sep=</span><span class="st">&quot; &quot;</span>)
+
+<span class="co">#enrichment map command will return the suid of newly created network.</span>
+response &lt;-<span class="st"> </span><span class="kw">commandsGET</span>(em_command)
+
+
+current_network_suid &lt;-<span class="st"> </span><span class="dv">0</span>
+<span class="co">#enrichment map command will return the suid of newly created network unless it Failed.  </span>
+<span class="co">#If it failed it will contain the word failed</span>
+<span class="cf">if</span>(<span class="kw">grepl</span>(<span class="dt">pattern=</span><span class="st">&quot;Failed&quot;</span>, response)){
+  <span class="kw">paste</span>(response)
+} <span class="cf">else</span> {
+  current_network_suid &lt;-<span class="st"> </span>response
+}
+
+response &lt;-<span class="st"> </span><span class="kw">renameNetwork</span>(current_network_name, <span class="kw">as.numeric</span>(current_network_suid))</code></pre></div>
+<p>When building a network if the commandGET returns an error similar to this: “RCy3::commandsGET, HTTP Error Code: 500 url=<a href="http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic&amp;gmtFile=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin&#39;s%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_March_01_2018_symbol.gmt&amp;pvalue=%200.05&amp;qvalue=%200.0001&amp;similaritycutoff=%200.25&amp;coefficients=%20JACCARD&amp;enrichmentsDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin&#39;s%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/mroast_results_generic_em.txt&amp;expressionDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin&#39;s%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt">http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic&amp;gmtFile=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_March_01_2018_symbol.gmt&amp;pvalue=%200.05&amp;qvalue=%200.0001&amp;similaritycutoff=%200.25&amp;coefficients=%20JACCARD&amp;enrichmentsDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/mroast_results_generic_em.txt&amp;expressionDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt</a> Error in commandsGET(em_command) :”</p>
+<p>Copy the url (for example from the above error use “<a href="http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic&amp;gmtFile=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin&#39;s%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_March_01_2018_symbol.gmt&amp;pvalue=%200.05&amp;qvalue=%200.0001&amp;similaritycutoff=%200.25&amp;coefficients=%20JACCARD&amp;enrichmentsDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin&#39;s%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/mroast_results_generic_em.txt&amp;expressionDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin&#39;s%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt">http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic&amp;gmtFile=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_March_01_2018_symbol.gmt&amp;pvalue=%200.05&amp;qvalue=%200.0001&amp;similaritycutoff=%200.25&amp;coefficients=%20JACCARD&amp;enrichmentsDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/mroast_results_generic_em.txt&amp;expressionDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt</a>”) and paste it into a web browser to get a more descriptive error message. Do not copy the above link to your web browser. The url is specific to the machine you have run the notebook on. copy the url from your error message.</p>
+<p>Sometimes the above error will come back when everything is fine. If there are no results returned because nothing passes the thresholds you specified the above error with appear in R. In the web browser after following the above link will show the error “Failed: None of the gene sets have passed the filter. Try relaxing the gene set filter parameters.”</p>
+<p>Build a network with the ROAST<span class="citation"><sup>1</sup></span> results</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cur_model_name &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;roast&quot;</span>,analysis_name,<span class="dt">sep=</span><span class="st">&quot;_&quot;</span>)
+results_filename &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="kw">getwd</span>(),working_dir,mroast_results_file,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>)
+
+#######################################
+<span class="co">#create EM -roast results</span>
+#######################################
+current_network_name &lt;-<span class="st"> </span><span class="kw">paste</span>(cur_model_name,pvalue_threshold,qvalue_threshold,<span class="dt">sep=</span><span class="st">&quot;_&quot;</span>)
+
+em_command =<span class="st"> </span><span class="kw">paste</span>(<span class="st">&#39;enrichmentmap build analysisType=&quot;generic&quot; gmtFile=&#39;</span>,generic_gmt_file,
+                   <span class="st">&#39;pvalue=&#39;</span>,pvalue_threshold, <span class="st">&#39;qvalue=&#39;</span>,qvalue_threshold,
+                   <span class="st">&#39;similaritycutoff=&#39;</span>,similarity_threshold,
+                   <span class="st">&#39;coefficients=&#39;</span>,similarity_metric,<span class="st">&#39;enrichmentsDataset1=&#39;</span>,results_filename,
+                   <span class="st">&#39;expressionDataset1=&#39;</span>,<span class="kw">paste</span>(<span class="kw">getwd</span>(),working_dir,expression_file,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>),
+                   <span class="dt">sep=</span><span class="st">&quot; &quot;</span>)
+
+<span class="co">#enrichment map command will return the suid of newly created network.</span>
+response &lt;-<span class="st"> </span><span class="kw">commandsGET</span>(em_command)
+
+
+current_network_suid &lt;-<span class="st"> </span><span class="dv">0</span>
+<span class="co">#enrichment map command will return the suid of newly created network unless it Failed.  </span>
+<span class="co"># If it failed it will contain the word failed</span>
+<span class="cf">if</span>(<span class="kw">grepl</span>(<span class="dt">pattern=</span><span class="st">&quot;Failed&quot;</span>, response)){
+  <span class="kw">paste</span>(response)
+} <span class="cf">else</span> {
+  current_network_suid &lt;-<span class="st"> </span>response
+}
+
+response &lt;-<span class="st"> </span><span class="kw">renameNetwork</span>(current_network_name, <span class="dt">network =</span> <span class="kw">as.numeric</span>(current_network_suid))</code></pre></div>
+</div>
+</div>
+<div id="references" class="section level2 unnumbered">
+<h2>References</h2>
+<div id="refs" class="references">
+<div id="ref-roast">
+<p>1. Wu, D. <em>et al.</em> ROAST: Rotation gene set tests for complex microarray experiments. <em>Bioinformatics</em> <strong>26,</strong> 2176–82 (2010).</p>
+</div>
+<div id="ref-camera">
+<p>2. Wu, D. &amp; Smyth, G. K. Camera: A competitive gene set test accounting for inter-gene correlation. <em>Nucleic Acids Res</em> <strong>40,</strong> e133 (2012).</p>
+</div>
+<div id="ref-OV">
+<p>3. Verhaak, R. G. <em>et al.</em> Prognostically relevant gene signatures of high-grade serous ovarian carcinoma. <em>J Clin Invest</em> <strong>123,</strong> 517–25 (2013).</p>
+</div>
+</div>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
