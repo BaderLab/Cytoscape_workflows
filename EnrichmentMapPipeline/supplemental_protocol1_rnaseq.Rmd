@@ -4,6 +4,18 @@ title: Supplementary Protocol 1 – create a gene list by analyzing gene express
 author: "Ruth Isserlin"
 date: "`r format(Sys.Date())`"
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  html_notebook:
+    highligh: haddock
+    number_sections: yes
+    theme: paper
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
   html_document:
     highligh: haddock
     keep_md: yes
@@ -14,18 +26,6 @@ output:
     toc_float:
       collapsed: no
       smooth_scroll: no
-  html_notebook:
-    highligh: haddock
-    number_sections: yes
-    theme: paper
-    toc: yes
-    toc_depth: 3
-    toc_float:
-      collapsed: no
-      smooth_scroll: no
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
 bibliography: sup_protocol1_references.bib
 csl: nature-protocols.csl
 ---
@@ -49,7 +49,7 @@ This part of the supplementary protocol demonstrates filtering and scoring RNA-S
 
 ### Load required packages
 1. Load required Bioconductor packages into R. 
-```{r, warning=FALSE}
+```{r}
 knitr::opts_knit$set(cache = TRUE)
 
 tryCatch(expr = { library("edgeR")}, 
@@ -422,7 +422,4 @@ write.table(ranks_RNAseq, paste(working_dir,"ProlifvsRest_RNASeq_ranks.rnk",sep=
 col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
 ```
 
-```{r, eval = add_setup,echo=FALSE, warning=FALSE}
-library(knitr)
-asis_output("## References\\n") # Header that is only shown if add_setup == TRUE
-```
+## `r if(add_setup){paste("References")}`

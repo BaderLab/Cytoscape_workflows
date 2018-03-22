@@ -49,7 +49,7 @@ if(check(add_setup) == 0){
 
 22. Load required Bioconductor packages into R and set working folder to the location of Supplementary Files 1-4.
 
-```{r, warning=FALSE}
+```{r}
 #working_dir <- “path/to/data”
 working_dir <- "./data"
 
@@ -436,7 +436,4 @@ response <- renameNetwork(current_network_name, network = as.numeric(current_net
 ```
 
 
-```{r, eval = add_setup,echo=FALSE, warning=FALSE}
-library(knitr)
-asis_output("## References\\n") # Header that is only shown if add_setup == TRUE
-```
+## `r if(add_setup){paste("References")}`

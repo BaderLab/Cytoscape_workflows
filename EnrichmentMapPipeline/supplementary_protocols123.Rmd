@@ -32,10 +32,6 @@ csl: nature-protocols.csl
 ```{r autodoc, child='supplementary_protocols123_setup.Rmd', eval=TRUE, echo=TRUE}
 ``` 
 
-```{r include=FALSE}
-add_setup = FALSE
-```
-
 ```{r autodoc, child='supplemental_protocol1_rnaseq.Rmd', eval=TRUE, echo=TRUE}
 ``` 
 

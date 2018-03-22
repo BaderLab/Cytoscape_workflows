@@ -11,7 +11,7 @@
 
 <meta name="author" content="Ruth Isserlin" />
 
-<meta name="date" content="2018-03-21" />
+<meta name="date" content="2017-12-13" />
 
 <title>Supplementary Protocol 2 – create a gene list by analyzing gene expression data from Affymetrix microarrays with Limma</title>
 
@@ -359,81 +359,28 @@ div.tocify {
 
 <h1 class="title toc-ignore">Supplementary Protocol 2 – create a gene list by analyzing gene expression data from Affymetrix microarrays with Limma</h1>
 <h4 class="author"><em>Ruth Isserlin</em></h4>
-<h4 class="date"><em>2018-03-21</em></h4>
+<h4 class="date"><em>2017-12-13</em></h4>
 
 </div>
 
 
+<div id="process-microarray-data" class="section level1">
+<h1><span class="header-section-number">1</span> Process Microarray data</h1>
 <p>This protocol demonstrates the extraction of gene lists for pathway enrichment analysis using RMA-normalized gene expression data from Affymetrix microarrays for downstream pathway enrichment analysis with g:Profiler, GSEA and other similar tools. g:Profiler requires a ranked list of differentially expressed genes that are filtered according to a significance cut-off. GSEA requires a two-column tab-separated RNK file with a ranked list of all genes in the genome. In the RNK file, the first column specifies the gene name and the second column specifies a numeric score representing the level of differential expression. For both methods, the first step involves calculating a statistic for each gene that represents the difference in its expression levels between the two groups. This step is performed using the limma R package.</p>
-<div id="background-and-setup-for-all-supplmentary-protocols" class="section level1">
-<h1><span class="header-section-number">1</span> Background and Setup for all Supplmentary Protocols</h1>
-<div id="equipment" class="section level2">
-<h2><span class="header-section-number">1.1</span> Equipment</h2>
-<div id="hardware-requirements" class="section level3">
-<h3><span class="header-section-number">1.1.1</span> Hardware requirements:</h3>
-<ul>
-<li>A recent personal computer with at least 8 gigabytes of memory (RAM). Software requirements:</li>
-<li>The R statistical computing environment (<a href="http://www.r-project.org/" class="uri">http://www.r-project.org/</a>). We suggest using the integrated development environment RStudio (<a href="https://www.rstudio.com/" class="uri">https://www.rstudio.com/</a>).</li>
-<li>Required R packages: Biobase, Limma and GSA are available from Bioconductor (<a href="https://www.bioconductor.org/" class="uri">https://www.bioconductor.org/</a>)</li>
-</ul>
-</div>
-<div id="data-requirements" class="section level3">
-<h3><span class="header-section-number">1.1.2</span> Data requirements:</h3>
-<ul>
-<li>Supplementary_Table10_TCGA_Microarray_rmanormalized.txt corresponds to the RMA normalized Affymetrix mRNA transcript expression data for serous ovarian cancer samples as downloaded from the GDC portal65. Normalization is required to compute differential gene expression values across subtypes, as performed in Supplementary Protocol 1A.</li>
-<li>Supplementary_Table12_TCGA_RNASeq_rawcounts.txt corresponds to read counts per mRNA transcript determined using the RSEM method. These counts can be used to compare gene expression between subtypes using the edgeR analysis tool, as performed in Supplementary Protocol 1B. The counts are not pre-normalized and the normalization step using edgeR is part of the protocol.</li>
-<li>Supplementary_Table11_Microarray_classdefinitions.txt and Supplementary_Table13_RNASeq_classdefinitions.txt define the subtype classification of ovarian cancer samples (immunoreactive, mesenchymal, differentiated, proliferative) (Verhaak et al.<span class="citation"><sup>1</sup></span> supplementary table 1, column 3). This information is used to extract two subgroups of interest, mesenchymal and immunoreactive.</li>
-</ul>
-</div>
-<div id="equipment-setup" class="section level3">
-<h3><span class="header-section-number">1.1.3</span> Equipment Setup</h3>
-<ul>
-<li>Download and install R from <a href="http://cran.r-project.org/" class="uri">http://cran.r-project.org/</a></li>
-<li>Download and install RStudio from <a href="https://www.rstudio.com/" class="uri">https://www.rstudio.com/</a> (optional, but recommended)</li>
-<li>Launch R or RStudio</li>
-<li><p>Install required Bioconductor packages. Enter the following commands in the R command line (also see <a href="https://www.bioconductor.org/install/" class="uri">https://www.bioconductor.org/install/</a>):</p>
-<ul>
-<li>source(“<a href="http://www.Bioconductor.org/biocLite.R" class="uri">http://www.Bioconductor.org/biocLite.R</a>”)</li>
-<li>biocLite(“BiocUpgrade”)</li>
-<li>biocLite(c(“Biobase”,“limma”,”edgeR”,”GSA”,”locfit”))</li>
-<li>install.packages(c(“pheatmap”, ”RColorBrewer”, ”gProfileR”, ”RJSONIO”, ”httr”))</li>
-</ul></li>
-<li><p>If the required packages are already installed you may receive a prompt to update these. The prompt window will ask you about updating the packages:</p>
-<ul>
-<li>Update all/some/none? [a/s/n]</li>
-<li>Type ‘a’ without quotes and hit enter.</li>
-</ul></li>
-<li><p>Load libraries into the R session using the example below. Loading of libraries is required every time R is re-opened.</p>
-<ul>
-<li>library(“limma”)</li>
-</ul></li>
-<li>All R files are available at <a href="https://github.com/BaderLab/EM-tutorials-docker/tree/master/R_scripts" class="uri">https://github.com/BaderLab/EM-tutorials-docker/tree/master/R_scripts</a></li>
-<li><p>Alternately, R notebooks (use R markdown and creates a notebook similar to Jupyter notebooks) of this protocol are available at <a href="https://github.com/BaderLab/Cytoscape_workflows/tree/master/EnrichmentMapPipeline" class="uri">https://github.com/BaderLab/Cytoscape_workflows/tree/master/EnrichmentMapPipeline</a></p></li>
-</ul>
-</div>
-<div id="data-setup" class="section level3">
-<h3><span class="header-section-number">1.1.4</span> Data setup</h3>
-<ul>
-<li>Download Supplementary Tables 10-13 to a dedicated folder of your computer. The first step of your R script will change the working directory of R to this folder.</li>
-<li>As text editors sometimes add invisible characters to text copied from PDF files, copying and pasting from this document is not recommended. The R scripts or the R notebook available in the above URLs should be used instead.</li>
-<li>Setting the current directory and loading packages (libraries) are the required first and second steps of each protocol. These are needed each time a new session is opened in R.</li>
-</ul>
-</div>
-</div>
-<div id="process-microarray-data" class="section level2">
-<h2><span class="header-section-number">1.2</span> Process Microarray data</h2>
-<div id="load-required-packages" class="section level3">
-<h3><span class="header-section-number">1.2.1</span> Load required packages</h3>
-<ol start="10" style="list-style-type: decimal">
+<div id="load-required-packages" class="section level2">
+<h2><span class="header-section-number">1.1</span> Load required packages</h2>
+<ol start="9" style="list-style-type: decimal">
 <li>Load required Bioconductor packages into R</li>
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#check to see if the library has already been installed.  If it hasn&#39;t then install it. </span>
 <span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;Biobase&quot;</span>)}, 
-         <span class="dt">error =</span> <span class="cf">function</span>(e) { 
+         <span class="dt">error =</span> function(e) { 
            <span class="kw">source</span>(<span class="st">&quot;https://bioconductor.org/biocLite.R&quot;</span>)
            <span class="kw">biocLite</span>(<span class="st">&quot;Biobase&quot;</span>)}, 
          <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;Biobase&quot;</span>))</code></pre></div>
+<pre><code>## Warning: package &#39;Biobase&#39; was built under R version 3.4.2</code></pre>
 <pre><code>## Loading required package: BiocGenerics</code></pre>
+<pre><code>## Warning: package &#39;BiocGenerics&#39; was built under R version 3.4.2</code></pre>
 <pre><code>## Loading required package: parallel</code></pre>
 <pre><code>## 
 ## Attaching package: &#39;BiocGenerics&#39;</code></pre>
@@ -460,40 +407,40 @@ div.tocify {
 ##     &#39;browseVignettes()&#39;. To cite Bioconductor, see
 ##     &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">library</span>(<span class="st">&quot;limma&quot;</span>)}, 
-         <span class="dt">error =</span> <span class="cf">function</span>(e) { 
+         <span class="dt">error =</span> function(e) { 
            <span class="kw">source</span>(<span class="st">&quot;https://bioconductor.org/biocLite.R&quot;</span>)
            <span class="kw">biocLite</span>(<span class="st">&quot;limma&quot;</span>)}, 
          <span class="dt">finally =</span> <span class="kw">library</span>(<span class="st">&quot;limma&quot;</span>))</code></pre></div>
+<pre><code>## Warning: package &#39;limma&#39; was built under R version 3.4.2</code></pre>
 <pre><code>## 
 ## Attaching package: &#39;limma&#39;</code></pre>
 <pre><code>## The following object is masked from &#39;package:BiocGenerics&#39;:
 ## 
 ##     plotMA</code></pre>
-<p>Set the working directory to the location of where the Supplemental Tables 1-4 are stored. The function getwd() shows the working directory and dir() shows its files.</p>
+<ol start="10" style="list-style-type: decimal">
+<li>Set the working directory to the location of where the Supplemental Tables 1-4 are stored. The function getwd() shows the working directory and dir() shows its files.</li>
+</ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">working_dir &lt;-<span class="st"> &quot;./data&quot;</span></code></pre></div>
 </div>
-<div id="load-expression-data" class="section level3">
-<h3><span class="header-section-number">1.2.2</span> Load Expression Data</h3>
+<div id="load-expression-data" class="section level2">
+<h2><span class="header-section-number">1.2</span> Load Expression Data</h2>
 <ol start="11" style="list-style-type: decimal">
 <li>Load expression data into R. Minimally the expression set requires a gene name for each row and typically at least 6 expression values (3 values in each compared class). Our dataset consists of 216 patients with 107 immunoreactive and 109 mesenchymal samples. After loading, use the command head(expressionMatrix) to verify the loaded matrix.</li>
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">expressionMatrix &lt;-<span class="st"> </span><span class="kw">as.matrix</span>(<span class="kw">read.table</span>(
-  <span class="kw">paste</span>(working_dir, <span class="st">&quot;Supplementary_Table10_TCGA_Microarray_rmanormalized.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
-  <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>))</code></pre></div>
+  <span class="kw">paste</span>(working_dir, <span class="st">&quot;Supplementary_Table10_TCGA_Microarray_rmanormalized.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>))</code></pre></div>
 </div>
-<div id="load-subtype-information" class="section level3">
-<h3><span class="header-section-number">1.2.3</span> Load subtype information</h3>
+<div id="load-subtype-information" class="section level2">
+<h2><span class="header-section-number">1.3</span> Load subtype information</h2>
 <ol start="12" style="list-style-type: decimal">
 <li>Load subtype classification of samples. To calculate differential expression, we need to define at least 2 classes of samples. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into mesenchymal and immunoreactive classes (Supplementary Table 3, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal.</li>
 </ol>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">classDefinitions &lt;-<span class="st"> </span><span class="kw">read.table</span>( 
-  <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table11_Microarray_classdefinitions.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), 
-  <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)
-<span class="kw">identical</span>(<span class="kw">colnames</span>(expressionMatrix), classDefinitions<span class="op">$</span>patient)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">classDefinitions &lt;-<span class="st"> </span><span class="kw">read.table</span>( <span class="kw">paste</span>(working_dir,<span class="st">&quot;Supplementary_Table11_Microarray_classdefinitions.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot;/&quot;</span>), <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote=</span><span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)
+<span class="kw">identical</span>(<span class="kw">colnames</span>(expressionMatrix), classDefinitions$patient)</code></pre></div>
 <pre><code>## [1] TRUE</code></pre>
 </div>
-<div id="calculate-differential-expression" class="section level3">
-<h3><span class="header-section-number">1.2.4</span> Calculate Differential expression</h3>
+<div id="calculate-differential-expression" class="section level2">
+<h2><span class="header-section-number">1.4</span> Calculate Differential expression</h2>
 <ol start="13" style="list-style-type: decimal">
 <li>Format data and class definitions for limma. The expression data needs to be converted to an object of type ExpressionSet. The ExpressionSet needs to include a data matrix where rows are genes, columns are samples and each cell contains an expression value. Classes need to be defined as factors.</li>
 </ol>
@@ -502,7 +449,7 @@ classes &lt;-<span class="st"> </span><span class="kw">factor</span>(classDefini
 <ol start="14" style="list-style-type: decimal">
 <li>Create a model matrix with the defined classes.</li>
 </ol>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">modelDesign &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span><span class="dv">0</span> <span class="op">+</span><span class="st"> </span>classes)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">modelDesign &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(~<span class="st"> </span><span class="dv">0</span> +<span class="st"> </span>classes)</code></pre></div>
 <ol start="15" style="list-style-type: decimal">
 <li>Fit the model to the expression matrix.</li>
 </ol>
@@ -511,17 +458,12 @@ classes &lt;-<span class="st"> </span><span class="kw">factor</span>(classDefini
 <li>Create the contrast matrix - By specifying Mesenchymal first and Immunoreactive second, positive logFC and t-values refer to higher expression levels (up-regulation) in the Mesenchenchymal versus Immunoreactive samples</li>
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">contrastnm &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;classesMesenchymal-classesImmunoreactive&quot;</span>) 
-contrast.matrix &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>(
-  <span class="dt">original =</span><span class="st">&quot;classesMesenchymal-classesImmunoreactive&quot;</span>,
-  <span class="dt">mesenvsrest =</span> <span class="st">&quot;classesMesenchymal-(classesImmunoreactive + </span>
-<span class="st">                classesProliferative +classesDifferentiated)/3&quot;</span>,
-  <span class="dt">immunovsrest =</span> <span class="st">&quot;classesImmunoreactive-(classesMesenchymal + </span>
-<span class="st">                classesProliferative +classesDifferentiated)/3&quot;</span>,
-  <span class="dt">prolifvsrest =</span> <span class="st">&quot;classesProliferative-(classesMesenchymal + </span>
-<span class="st">                classesImmunoreactive +classesDifferentiated)/3&quot;</span>, 
-  <span class="dt">diffvsrest =</span> <span class="st">&quot;classesDifferentiated-(classesMesenchymal + </span>
-<span class="st">                classesImmunoreactive +classesProliferative)/3&quot;</span>,
-  <span class="dt">levels=</span>modelDesign)</code></pre></div>
+contrast.matrix &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>(<span class="dt">original =</span><span class="st">&quot;classesMesenchymal-classesImmunoreactive&quot;</span>, 
+                                 <span class="dt">mesenvsrest =</span> <span class="st">&quot;classesMesenchymal-(classesImmunoreactive + classesProliferative +classesDifferentiated)/3&quot;</span>,
+                                 <span class="dt">immunovsrest =</span> <span class="st">&quot;classesImmunoreactive-(classesMesenchymal + classesProliferative +classesDifferentiated)/3&quot;</span>,
+                                 <span class="dt">prolifvsrest =</span> <span class="st">&quot;classesProliferative-(classesMesenchymal + classesImmunoreactive +classesDifferentiated)/3&quot;</span>, 
+                                 <span class="dt">diffvsrest =</span> <span class="st">&quot;classesDifferentiated-(classesMesenchymal + classesImmunoreactive +classesProliferative)/3&quot;</span>,<span class="dt">levels=</span>modelDesign)
+<span class="co">#contrast.matrix &lt;- makeContrasts(mesenvsrest = &quot;classesMesenchymal-(classesImmunoreactive + classesProliferative +classesDifferentiated)/3&quot;,levels=modelDesign)</span></code></pre></div>
 <ol start="17" style="list-style-type: decimal">
 <li>Model contrasts of gene expression. The following command models gene expression differences of each gene between the two groups of samples using linear regression and computes coefficients and standard errors.</li>
 </ol>
@@ -535,51 +477,46 @@ contrast.matrix &lt;-<span class="st"> </span><span class="kw">makeContrasts</sp
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topfit &lt;-<span class="st"> </span><span class="kw">topTable</span>(fit2, <span class="dt">coef=</span><span class="st">&quot;immunovsrest&quot;</span>,<span class="dt">number=</span><span class="kw">nrow</span>(expressionMatrix), <span class="dt">adjust=</span><span class="st">&quot;BH&quot;</span>)</code></pre></div>
 </div>
-<div id="create-gprofiler-input-list" class="section level3">
-<h3><span class="header-section-number">1.2.5</span> Create g:Profiler input list</h3>
+<div id="create-gprofiler-input-list" class="section level2">
+<h2><span class="header-section-number">1.5</span> Create g:Profiler input list</h2>
 <p>20a. Create the gene list for use in g:Profiler or another thresholded enrichment tool. The list may comprise all genes that have a significant FDR-corrected p-value, all up-regulated genes with a significant FDR p-value, all down-regulated genes with a significant FDR p-value, or some other combination of thresholds. * To get all significant genes:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">length</span>(<span class="kw">which</span>(topfit<span class="op">$</span>adj.P.Val<span class="op">&lt;</span><span class="fl">0.05</span>))</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">length</span>(<span class="kw">which</span>(topfit$adj.P.Val&lt;<span class="fl">0.05</span>))</code></pre></div>
 <pre><code>## [1] 3988</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">rownames</span>(topfit)[<span class="kw">which</span>(topfit<span class="op">$</span>adj.P.Val<span class="op">&lt;</span><span class="fl">0.05</span>)]
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005 &lt;-<span class="st"> </span><span class="kw">rownames</span>(topfit)[<span class="kw">which</span>(topfit$adj.P.Val&lt;<span class="fl">0.05</span>)]
 <span class="kw">head</span>(topgenes_qvalue005)</code></pre></div>
 <pre><code>## [1] &quot;TFEC&quot;  &quot;CD86&quot;  &quot;CD48&quot;  &quot;IL2RG&quot; &quot;LCP2&quot;  &quot;GPR65&quot;</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">write.table</span>(topgenes_qvalue005, 
 <span class="st">&quot;ImmunovsRest_allsignificantgenes.txt&quot;</span>, 
 <span class="dt">col.names=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)</code></pre></div>
 </div>
-<div id="examine-results" class="section level3">
-<h3><span class="header-section-number">1.2.6</span> Examine results</h3>
+<div id="examine-results" class="section level2">
+<h2><span class="header-section-number">1.6</span> Examine results</h2>
 <ul>
 <li>Significantly up-regulated genes in mesenchymal samples have positive logFC and t-values.</li>
 </ul>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">length</span>(<span class="kw">which</span>(topfit<span class="op">$</span>adj.P.Val<span class="op">&lt;</span><span class="fl">0.05</span> <span class="op">&amp;</span><span class="st"> </span>topfit<span class="op">$</span>t <span class="op">&gt;</span><span class="dv">0</span>))</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">length</span>(<span class="kw">which</span>(topfit$adj.P.Val&lt;<span class="fl">0.05</span> &amp;<span class="st"> </span>topfit$t &gt;<span class="dv">0</span>))</code></pre></div>
 <pre><code>## [1] 2235</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005_mesenchymal &lt;-
-<span class="st">    </span><span class="kw">rownames</span>(topfit)[<span class="kw">which</span>(topfit<span class="op">$</span>adj.P.Val<span class="op">&lt;</span><span class="fl">0.05</span> <span class="op">&amp;</span><span class="st"> </span>topfit<span class="op">$</span>t <span class="op">&gt;</span><span class="dv">0</span>)]
+<span class="st">    </span><span class="kw">rownames</span>(topfit)[<span class="kw">which</span>(topfit$adj.P.Val&lt;<span class="fl">0.05</span> &amp;<span class="st"> </span>topfit$t &gt;<span class="dv">0</span>)]
 <span class="kw">head</span>(topgenes_qvalue005_mesenchymal)</code></pre></div>
 <pre><code>## [1] &quot;TFEC&quot;  &quot;CD86&quot;  &quot;CD48&quot;  &quot;IL2RG&quot; &quot;LCP2&quot;  &quot;GPR65&quot;</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">write.table</span>(topgenes_qvalue005_mesenchymal, 
-            <span class="st">&quot;ImmunovsRest_immuno_significantgenes.txt&quot;</span>, 
-            <span class="dt">col.names=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">write.table</span>(topgenes_qvalue005_mesenchymal, <span class="st">&quot;ImmunovsRest_immuno_significantgenes.txt&quot;</span>, <span class="dt">col.names=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)</code></pre></div>
 <ul>
 <li>Significantly up-regulated genes in immunoreactive samples have negative logFC and t-values.</li>
 </ul>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">length</span>(<span class="kw">which</span>(topfit<span class="op">$</span>adj.P.Val<span class="op">&lt;</span><span class="fl">0.05</span> <span class="op">&amp;</span><span class="st"> </span>topfit<span class="op">$</span>t <span class="op">&lt;</span><span class="dv">0</span>))</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">length</span>(<span class="kw">which</span>(topfit$adj.P.Val&lt;<span class="fl">0.05</span> &amp;<span class="st"> </span>topfit$t &lt;<span class="dv">0</span>))</code></pre></div>
 <pre><code>## [1] 1753</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005_immunoreactive&lt;-<span class="st"> </span>
-<span class="st">  </span><span class="kw">rownames</span>(topfit)[<span class="kw">which</span>(topfit<span class="op">$</span>adj.P.Val<span class="op">&lt;</span><span class="fl">0.05</span> <span class="op">&amp;</span><span class="st"> </span>topfit<span class="op">$</span>t <span class="op">&lt;</span><span class="dv">0</span>)]
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topgenes_qvalue005_immunoreactive&lt;-<span class="st"> </span><span class="kw">rownames</span>(topfit)[<span class="kw">which</span>(topfit$adj.P.Val&lt;<span class="fl">0.05</span> &amp;<span class="st"> </span>topfit$t &lt;<span class="dv">0</span>)]
 <span class="kw">head</span>(topgenes_qvalue005_immunoreactive)</code></pre></div>
 <pre><code>## [1] &quot;GPC1&quot;   &quot;SH3BP4&quot; &quot;TCF7L1&quot; &quot;LAMB1&quot;  &quot;MYH10&quot;  &quot;TTC3&quot;</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">write.table</span>(topgenes_qvalue005_immunoreactive, 
-  <span class="st">&quot;ImmunovsRest_rest_significantgenes.txt&quot;</span>, 
-  <span class="dt">col.names=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)</code></pre></div>
+<span class="st">&quot;ImmunovsRest_rest_significantgenes.txt&quot;</span>, <span class="dt">col.names=</span><span class="ot">FALSE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)</code></pre></div>
 </div>
-<div id="create-gsea-input-list" class="section level3">
-<h3><span class="header-section-number">1.2.7</span> Create GSEA input list</h3>
+<div id="create-gsea-input-list" class="section level2">
+<h2><span class="header-section-number">1.7</span> Create GSEA input list</h2>
 <p>20b. Create a rank file for GSEA. To run GSEA in pre-ranked mode, you need a two column RNK file with gene/protein/probe name (column 1) and the associated score (column 2). The first column should contain the same type of gene IDs used in the pathway gene-set (GMT) file. GSEA looks for enrichment in the top and bottom parts of the list, ranking the file using the t-statistic. The t-statistic indicates the strength of differential expression and is used in the p-value calculation. Other scores indicating the strength of differential expression may be used as well. GSEA ranks the most up-regulated genes at the top of the list and the most down-regulated at the bottom of the list. Genes at the top of the list are more highly expressed in class A compared to class B, while genes at the bottom of the list are higher in class B. In this workflow, a positive t-value means a higher expression of a gene in the Mesenchymal samples compared to the Immunoreactive samples (variable constrastnm). The following commands create a data frame with gene IDs and t-statistics, remove lines with missing gene IDs, and store the result as a RNK file. An additional step is usually required in analysis of Affymetrix microarray data as genes are represented with multiple probesets. The most significant probeset or average probeset score may be considered for every gene.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ranks &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">geneID=</span><span class="kw">rownames</span>(topfit),<span class="dt">t_stat=</span>topfit[,<span class="st">&quot;t&quot;</span>], 
-                    <span class="dt">stringsAsFactors=</span>F)
-ranks &lt;-<span class="st"> </span>ranks[<span class="kw">which</span>(ranks[,<span class="st">&quot;geneID&quot;</span>] <span class="op">!=</span><span class="st"> &quot;&quot;</span>),]
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ranks &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">geneID=</span><span class="kw">rownames</span>(topfit),<span class="dt">t_stat=</span>topfit[,<span class="st">&quot;t&quot;</span>], <span class="dt">stringsAsFactors=</span>F)
+ranks &lt;-<span class="st"> </span>ranks[<span class="kw">which</span>(ranks[,<span class="st">&quot;geneID&quot;</span>] !=<span class="st"> &quot;&quot;</span>),]
 <span class="kw">write.table</span>(ranks,<span class="st">&quot;ImmunovsRest_limma_ranks.rnk&quot;</span>,
 <span class="dt">col.name=</span><span class="ot">TRUE</span>,<span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>,<span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)
 
@@ -592,32 +529,11 @@ ranks &lt;-<span class="st"> </span>ranks[<span class="kw">which</span>(ranks[,<
 ## 5   LCP2 16.73821
 ## 6  GPR65 16.65257</code></pre>
 </div>
-<div id="create-expression-file" class="section level3">
-<h3><span class="header-section-number">1.2.8</span> Create expression file</h3>
+<div id="create-expression-file" class="section level2">
+<h2><span class="header-section-number">1.8</span> Create expression file</h2>
 <ol start="21" style="list-style-type: decimal">
 <li>Create an expression file for the enrichment map and save files to the home folder of the analysis. The expression file contains the gene IDs as the first column gene description as the second column and the expression values for each sample as the additional columns. Gene IDs should correspond to the first column of the rank file. The text files will be saved on your computer in the directory specified at the beginning of the script using setwd(). The .rnk, .cls and .txt are all tab delimited files that can be viewed in spreadsheet or in a text editor.</li>
 </ol>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(biomaRt)
-mart =<span class="st"> </span><span class="kw">useMart</span>(<span class="dt">biomart=</span><span class="st">&quot;ensembl&quot;</span>, <span class="dt">dataset=</span><span class="st">&quot;hsapiens_gene_ensembl&quot;</span>)
-
-genes =<span class="st"> </span><span class="kw">getBM</span>(<span class="dt">attributes =</span> <span class="kw">c</span>( <span class="st">&#39;hgnc_symbol&#39;</span>, <span class="st">&#39;description&#39;</span>), <span class="dt">filters=</span><span class="st">&#39;hgnc_symbol&#39;</span>, 
-              <span class="dt">values=</span><span class="kw">row.names</span>(expressionMatrix), <span class="dt">mart=</span>mart);
-genes<span class="op">$</span>description =<span class="st"> </span><span class="kw">gsub</span>(<span class="st">&quot;</span><span class="ch">\\</span><span class="st">[Source.*&quot;</span>, <span class="st">&quot;&quot;</span>, genes<span class="op">$</span>description);
-
-EM_expressionFile &lt;-<span class="st"> </span><span class="kw">merge</span>(genes,expressionMatrix,  <span class="dt">all.y=</span><span class="ot">TRUE</span>,<span class="dt">by.x=</span><span class="dv">1</span>, <span class="dt">by.y=</span><span class="dv">0</span>)
-<span class="kw">colnames</span>(EM_expressionFile)[<span class="dv">1</span>] &lt;-<span class="st"> &quot;Name&quot;</span>
-<span class="kw">colnames</span>(EM_expressionFile)[<span class="dv">2</span>] &lt;-<span class="st"> &quot;Description&quot;</span>
-<span class="kw">write.table</span>(EM_expressionFile, <span class="st">&quot;TCGA_OV_expression.txt&quot;</span>, 
-    <span class="dt">col.name=</span><span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names=</span><span class="ot">FALSE</span>, <span class="dt">quote=</span><span class="ot">FALSE</span>)</code></pre></div>
-</div>
-</div>
-<div id="references" class="section level2 unnumbered">
-<h2>References</h2>
-<div id="refs" class="references">
-<div id="ref-OV">
-<p>1. Verhaak, R. G. <em>et al.</em> Prognostically relevant gene signatures of high-grade serous ovarian carcinoma. <em>J Clin Invest</em> <strong>123,</strong> 517–25 (2013).</p>
-</div>
-</div>
 </div>
 </div>
 

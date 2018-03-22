@@ -68,3 +68,6 @@ Software requirements:
   * As text editors sometimes add invisible characters to text copied from PDF files, copying and pasting from this document is not recommended. The R scripts or the R notebook available in the above URLs should be used instead. 
   * Setting the current directory and loading packages (libraries) are the required first and second steps of each protocol. These are needed each time a new session is opened in R.
   
+```{r include=FALSE}
+add_setup = FALSE
+```
