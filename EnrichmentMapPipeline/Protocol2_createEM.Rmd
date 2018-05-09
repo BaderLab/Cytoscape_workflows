@@ -3,11 +3,14 @@ title: "Enrichment Map Analysis Pipeline"
 author: "Ruth Isserlin"
 date: '`r format(Sys.Date())`'
 output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: yes
   html_document:
-    theme: paper
     highligh: haddock
     keep_md: yes
     number_sections: yes
+    theme: paper
     toc: yes
     toc_float:
       collapsed: no
@@ -21,6 +24,17 @@ output:
     toc_float:
       collapsed: no
       smooth_scroll: no
+params:
+  analysis_name: Mesen_vs_Immuno
+  classes_file: Supplementary_Table9_TCGA_OV_RNAseq_classes.cls
+  expression_file: Supplementary_Table6_TCGA_OV_RNAseq_expression.txt
+  fdr_thresh: 0.01
+  gsea_directory: ''
+  gsea_jar: ./gsea-3.0.jar
+  pval_thresh: 1
+  rnk_file: Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk
+  run_gsea: yes
+  working_dir: ./data/
 ---
 
 # Materials
@@ -34,17 +48,17 @@ output:
  * A contemporary web browser (e.g. Chrome, Firefox), for pathway enrichment analysis with g:Profiler (Protocol 1A).
  * Java Standard Edition. Java is required to run GSEA and Cytoscape. It is available at http://java.oracle.com. Version 8 or higher is requiredrecommended, but Java 7 will function.
  * GSEA desktop application for pathway enrichment analysis protocol 1B. Download the latest version of GSEA from http://www.broadinstitute.org/gsea/downloads.jsp. We recommend the javaGSEA desktop application. Free registration is required.
- * Cytoscape desktop application is required for Enrichment Map visualization. The latest version of Cytoscape can be downloaded at http://www.cytoscape.org.
- * The following Cytoscape apps are installed within Cytoscape. Go to Apps  App manager (i.e., open the Apps menu and select the item “App manager”). 
-   * Enrichment Map, version 3.0 or higher,
+ * Cytoscape desktop application is required for EnrichmentMap visualization. The latest version of Cytoscape can be downloaded at http://www.cytoscape.org.
+ * The following Cytoscape apps are installed within Cytoscape.
+   * EnrichmentMap, version 3.1 or higher,
    * Clustermaker2, version 0.9.5 or higher,
    * WordCloud, version 3.1.0 or higher,
    * AutoAnnotate, version 1.2.0 or higher
 
-# Create Enrichment Map - Automaticallly from R using cyRest
+# Create EnrichmentMap - Automaticallly from R using cyRest
 ## Load in required libraries
 
-```{r}
+```{r load libraries}
 #install required R and bioconductor packages
 tryCatch(expr = { library("RCurl")}, 
          error = function(e) {  install.packages("RCurl")}, 
@@ -75,35 +89,35 @@ tryCatch(expr = { library("RJSONIO")},
 ***
 
 ## Configurable Parameters
-In order to run GSEA automatically through the notebook you will need to download the gsea jar from [here](http://software.broadinstitute.org/gsea/downloads.jsp).  Specify the exact path to the gsea jar below in order to automatically compute enrichments using GSEA.
+In order to run GSEA automatically through the notebook you will need to download the gsea jar from [here](http://software.broadinstitute.org/gsea/downloads.jsp).  Specify the exact path to the gsea jar in the parameters in order to automatically compute enrichments using GSEA.
 
-```{r}
+```{r initialize parameters}
 #path to GSEA jar 
 # In order to run GSEA automatically you need to speciry the path to the gsea jar file.
-gsea_jar <- "./gsea-3.0.jar"
+gsea_jar <- params$gsea_jar
 
 #Gsea takes a long time to run.  If you have already run GSEA manually or previously there is no need to re-run GSEA.  Make sure the 
 # gsea results are in the current directory and the notebook will be able to find them and use them.
-run_gsea = FALSE
+run_gsea = params$run_gsea
 
 #navigate to the directory where you put the downloaded protocol files.
-working_dir <- paste("./data",sep="/")
+working_dir <- params$working_dir
 
 # leave blank if you want the notebook to discover the gsea directory for itself
 #gsea_directory = paste(working_dir,"Mesen_vs_Immuno.GseaPreranked.1497635459262",sep="/") 
-gsea_directory = ""
+gsea_directory = params$gsea_directory
 
-analysis_name <- "Mesen_vs_Immuno"
-rnk_file <- "Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk"
-expression_file <- "Supplementary_Table6_TCGA_OV_RNAseq_expression.txt"
-classes_file <- "Supplementary_Table9_TCGA_OV_RNAseq_classes.cls"
+analysis_name <- params$analysis_name
+rnk_file <- params$rnk_file
+expression_file <- params$expression_file
+classes_file <- params$classes_file
 
 ```
 
 ## Download the latest pathway definition file
 Only Human, Mouse and Rat gene set files are currently available on the baderlab downloads site.  If you are working with a species other than human (and it is either rat or mouse) change the gmt_url below to correct species. Check [here](http://download.baderlab.org/EM_Genesets/current_release/) to see all available species. 
 
-```{r}
+```{r download baderlab gmt file}
 gmt_url = "http://download.baderlab.org/EM_Genesets/current_release/Human/symbol/"
 
 #list all the files on the server
@@ -151,7 +165,7 @@ In the below command the following options have been specified:
 
  
  
-```{r}
+```{r run GSEA}
 if(run_gsea){
   command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", dest_gmt_file, "-rnk" ,paste(working_dir,rnk_file,sep="/"), "-collapse false -nperm 1000 -permute gene_set -scoring_scheme weighted -rpt_label ",analysis_name,"  -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,working_dir, "-gui false > gsea_output.txt",sep=" ")
   system(command)
@@ -161,7 +175,7 @@ if(run_gsea){
 ## Get the name of the GSEA output directory
 Although GSEA allows you to specify the name of the output directory and the destination folder it add additional words and numbers to the folder name.  Some are predictable and some are automatically generated.  Get all the GSEA results directories found in the current directory.  If there are multiple GSEA results folders each will be used to create an enrichment map.
 
-```{r}
+```{r compute results directory name}
 if(gsea_directory == ""){
   gsea_directories <- list.files(path = working_dir, pattern = "\\.GseaPreranked")
 
@@ -185,7 +199,7 @@ Create EM through Cyrest interface - make sure you open cytoscape with a -R 1234
 Launch Cytoscape (by default cytoscape will automatically enable rest so as long as cytoscape 3.3 or higher is open R should be able to communicate with it)  
 
 ## Set up connection from R to cytoscape 
-```{r}
+```{r initialize cytoscape connection}
 # Basic settings
 port.number = 1234
 base.url = paste("http://localhost:", toString(port.number), "/v1", sep="")
@@ -211,71 +225,63 @@ if(!cytoscape.open){
 ```
 ***
 ## Create an Enrichment map
-```{r}
-#detach("package:EasycyRest", unload = TRUE)
-
+```{r create enrichment map}
 #use easy cyRest library to communicate with cytoscape.
-tryCatch(expr = { library(devtools)}, 
-         error = function(e) { install.packages("devtools")}, finally = library(devtools))
-tryCatch(expr = { library(r2cytoscape)}, 
-          error = function(e) { install_github('cytoscape/cytoscape-automation/for-scripters/R/r2cytoscape')}, finally = library(r2cytoscape))
-tryCatch(expr = { library(EasycyRest)}, 
-          error = function(e) { install_github('BaderLab/Easycyrest/EasycyRest')}, finally = library(EasycyRest))
-
-
+tryCatch(expr = { library("RCy3")}, 
+         error = function(e) { source("https://bioconductor.org/biocLite.R")
+           biocLite("RCy3")}, finally = library("RCy3"))
 
 #defined threshold for GSEA enrichments (need to be strings for cyrest call)
-pvalue_gsea_threshold <- "1.0"
-qvalue_gsea_threshold <- "0.01"
+pvalue_gsea_threshold <- params$pval_thresh
+qvalue_gsea_threshold <- params$fdr_thresh
 
 similarity_threshold <- "0.375"
 similarity_metric = "COMBINED"
 
-GSEA_results <- paste(gsea_output_dir,sep="/")
-current_rank_filename = paste(working_dir,rnk_file,sep="/")
 cur_model_name <- analysis_name
 
-gsea_results_path <- paste(GSEA_results,"edb",sep="/")
+gsea_results_path <- paste(gsea_output_dir,"edb",sep="/")
 gsea_results_filename <- paste(gsea_results_path,"results.edb",sep="/")
 
-#although there is a gmt file in the gsea edb results directory it have been filtered to contain only genes represented in 
-# the expression set.  If you use this fltered file you will get different pathway connectivity depending on the dataset being
-# used.  We recommend using original gmt file used for the gsea analysis and not the filtered one in the results directory.
+#although there is a gmt file in the gsea edb results directory it have been filtered to 
+#contain only genes represented in the expression set.  If you use this fltered file you 
+#will get different pathway connectivity depending on the dataset being used.  We recommend 
+#using original gmt file used for the gsea analysis and not the filtered one in the results directory.
 gmt_gsea_file <- paste(getwd(),dest_gmt_file,sep="/")
 gsea_ranks_file <- paste(gsea_results_path,list.files(gsea_results_path,pattern=".rnk"),sep="/")
 
-
 #######################################
-#create EM pvalue < 0.01 and qvalue < 0.01
-#######################################
+#create EM
 current_network_name <- paste(cur_model_name,pvalue_gsea_threshold,qvalue_gsea_threshold,sep="_")
 
 em_command = paste('enrichmentmap build analysisType="gsea" gmtFile=',gmt_gsea_file,
                    'pvalue=',pvalue_gsea_threshold, 'qvalue=',qvalue_gsea_threshold,
                    'similaritycutoff=',similarity_threshold,
                    'coefficients=',similarity_metric,'ranksDataset1=', 
-                   gsea_ranks_file,'enrichmentsDataset1=',gsea_results_filename, 'filterByExpressions=false',
+                   gsea_ranks_file,'enrichmentsDataset1=',gsea_results_filename, 
+                   'filterByExpressions=false',
                    'expressionDataset1=',paste(getwd(),working_dir,expression_file,sep="/"),
                    sep=" ")
 
 #enrichment map command will return the suid of newly created network.
-response <- commandRun(em_command)
+response <- commandsGET(em_command)
 
 current_network_suid <- 0
-#enrichment map command will return the suid of newly created network unless it Failed.  If it failed it will contain the word failed
+#enrichment map command will return the suid of newly created network unless it Failed.  
+#If it failed it will contain the word failed
 if(grepl(pattern="Failed", response)){
   paste(response)
 } else {
   current_network_suid <- response
 }
-
-response <- renameNetwork(new.name = current_network_name, network = current_network_suid, base.url)
+response <- renameNetwork(new.name=current_network_name, 
+                          network = as.numeric(current_network_suid),base.url)
 
 
 ```
 
 ## Get a screen shot of the initial network.
-```{r}
+```{r get screenshot}
 output_network_file <- paste(getwd(),"initial_screenshot_network.png",sep="/")
 
 url_png <- paste(base.url,"networks",current_network_suid,"views/first.png", sep="/")
