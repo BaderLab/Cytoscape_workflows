@@ -29,7 +29,7 @@ bibliography: sup_protocol1_references.bib
 csl: nature-protocols.csl
 ---
 
-# Background and Setup for all Supplmentary Protocols
+# Background and Setup for all Supplementary Protocols
 
 ## Equipment
 ### Hardware requirements:
@@ -41,7 +41,8 @@ Software requirements:
 ### Data requirements:
   * Supplementary_Table10_TCGA_Microarray_rmanormalized.txt corresponds to the RMA normalized Affymetrix mRNA transcript expression data for serous ovarian cancer samples as downloaded from the GDC portal65. Normalization is required to compute differential gene expression values across subtypes, as performed in Supplementary Protocol 1A.
   * Supplementary_Table12_TCGA_RNASeq_rawcounts.txt corresponds to read counts per mRNA transcript determined using the RSEM method. These counts can be used to compare gene expression between subtypes using the edgeR analysis tool, as performed in Supplementary Protocol 1B. The counts are not pre-normalized and the normalization step using edgeR is part of the protocol.
-  * Supplementary_Table11_Microarray_classdefinitions.txt and Supplementary_Table13_RNASeq_classdefinitions.txt define the subtype classification of ovarian cancer samples (immunoreactive, mesenchymal, differentiated, proliferative) (Verhaak et al.[@OV] supplementary table 1, column 3). This information is used to extract two subgroups of interest, mesenchymal and immunoreactive.
+  * Supplementary_Table11_Microarray_classdefinitions.txt and Supplementary_- 
+Table13_RNASeq_classdefinitions.txt define the subtype classification of ovarian cancer samples (Immunoreactive, Mesenchymal, Differentiated, Proliferative) (Verhaak et al.[@OV] supplementary table 1, column 3). This information is used to extract two subgroups of interest, Mesenchymal and Immunoreactive.
 
 ### Equipment Setup
   * Download and install R from http://cran.r-project.org/
@@ -52,7 +53,7 @@ Software requirements:
     * source("http://www.Bioconductor.org/biocLite.R")
     * biocLite("BiocUpgrade")
     * biocLite(c("Biobase","limma",”edgeR”,”GSA”,”locfit”))
-    * install.packages(c(“pheatmap”, ”RColorBrewer”, ”gProfileR”, ”RJSONIO”, ”httr”))
+    * install.packages(c(“pheatmap”, ”RColorBrewer”, ”gProfileR”, ”httr”, "RJSONIO"))
   * If the required packages are already installed you may receive a prompt to update these. The prompt window will ask you about updating the packages: 
   
     * Update all/some/none? [a/s/n]

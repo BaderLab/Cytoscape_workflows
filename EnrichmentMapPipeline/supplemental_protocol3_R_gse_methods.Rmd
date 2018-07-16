@@ -28,6 +28,7 @@ output:
 bibliography: sup_protocol1_references.bib
 csl: nature-protocols.csl
 ---
+# Supplementary Protocol 3 – Pathway Enrichment Analysis in R using ROAST and Camera
 
 Bioinformatics analysis is often carried out in R. Pathway enrichment analysis can be also performed directly in R. This protocol will demonstrate the use of R packages ROAST[@roast] and Camera[@camera]. Each method requires an expressionSet that minimally contains a matrix of expression values for a set of genes and conditions. The expression matrix generated in supplementary protocol part 1 or 2 is suitable for the analysis. 
 
@@ -47,7 +48,7 @@ if(check(add_setup) == 0){
 
 ### Load required packages
 
-22. Load required Bioconductor packages into R and set working folder to the location of Supplementary Files 1-4.
+1. Load required Bioconductor packages into R and set working folder to the location of Supplementary Files 1-4.
 
 ```{r, warning=FALSE}
 #working_dir <- “path/to/data”
@@ -78,15 +79,15 @@ data_classes <- "SUBTYPE"
 #string to name the analysis
 analysis_name <- "Mesen_vs_Immuno"
 
-#from supplmentary protocol 1
+#from Supplementary protocol 1
 expression_file <- "Supplementary_Table6_TCGA_OV_RNAseq_expression.txt"
 
 ```
 
-23. Load in the gene sets from a GMT file.
+2. Load in the gene sets from a GMT file.
 
 ### Download the latest pathway definition file from the updated baderlab geneset files
-Only Human, Mouse and Rat gene set files are currently available on the baderlab downloads site.  If you are working with a species other than human (and it is either rat or mouse) change the gmt_url below to correct species. Check [here](http://download.baderlab.org/EM_Genesets/current_release/) to see all available species. 
+Only Human, Mouse and Rat gene set files are currently available on the Baderlab downloads site.  If you are working with a species other than human (and it is either rat or mouse) change the gmt_url below to correct species. Check [here](http://download.baderlab.org/EM_Genesets/current_release/) to see all available species. 
 
 This can be done automatically through R or can be done manually through the website.
 To download it programmatically follow below:
@@ -115,7 +116,7 @@ download.file(
 )
 
 ```
-Load in the newly downlaoded gmt file
+Load in the newly downloaded GMT file
 ```{r}
 #if you haven't automatically downloaded the gmt file set 
 #the path to the gmt file below.
@@ -129,13 +130,13 @@ capture.output(
 ```
 
 ### Create dataset to use with Camera[@camera] and ROAST[@roast]
-24. Camera[@camera] and ROAST[@roast] expect the gene sets to be a list of vectors where the slot name of each vector corresponds to the gene-set identifier, i.e. the name of the gene set however the GSA.read.gmt method loads the GMT file as an object with a list of gene set names and a list of gene sets. Add the gene set names to the gene sets vector to create a list of vectors required by ROAST[@roast] and Camera[@camera].
+3. Camera[@camera] and ROAST[@roast] expect the gene sets to be a list of vectors where the slot name of each vector corresponds to the gene-set identifier, i.e. the name of the gene set however the GSA.read.gmt method loads the GMT file as an object with a list of gene set names and a list of gene sets. Add the gene set names to the gene sets vector to create a list of vectors required by ROAST[@roast] and Camera[@camera].
 
 ```{r}
 names(genesets$genesets) <- genesets$geneset.names
 ```
 
-25. Specify the expression dataset to be used for the analysis. You can use the MinimalSet from Supplementary protocol 1A or the DGEList variable d from Supplementary protocol 1B. For our RNAseq dataset, each row of the expression set is annotated with gene symbol and EntrezGene ID separated by “|”. To match the gene set file we need to remove the EntrezGene IDs from the row names. We choose to use gene symbols to simplify interpretation of enriched pathways and associated genes.
+4. Specify the expression dataset to be used for the analysis. You can use the MinimalSet from Supplementary protocol 1A or the DGEList variable d from Supplementary protocol 1B. For our RNASeq dataset, each row of the expression set is annotated with gene symbol and EntrezGene ID separated by “|”. To match the gene set file we need to remove the EntrezGene IDs from the row names. We choose to use gene symbols to simplify interpretation of enriched pathways and associated genes.
 
 **(optional) Recreate the DGEList from supplementary protocol rnaseq (Steps 1 -5 in Supplementary protocol 1 rnaseq) or if you are within the same sesison you can use the d variable.**
 ```{r}
@@ -211,7 +212,7 @@ if(!dataType_rnaseq){
 
 ```
 
-If you haven't defined the data above using RNAseq data or microarray data, Set data to be your DGEList of MinimalSet.
+If you haven't defined the data above using RNASeq data or microarray data, Set data to be your DGEList of MinimalSet.
 ```{r}
 #Should be a minimalSet or DGEList
 #data_for_gs_analysis <- data you want to use for the analysis.  
@@ -219,21 +220,21 @@ If you haven't defined the data above using RNAseq data or microarray data, Set 
 ```
 
 ### Filter genesets to only contain genes found in the analysis set
-26. Camera[@camera] and ROAST[@roast] require that the gene sets are filtered such that all genes in gene sets have expression values in the dataset. Use function in limma (ids2indices) to convert gene identifiers in the geneset to indices in the dataset.
+5. Camera[@camera] and ROAST[@roast] require that the gene sets are filtered such that all genes in gene sets have expression values in the dataset. Use function in limma (ids2indices) to convert gene identifiers in the geneset to indices in the dataset.
 ```{r}
 genesets_filtered <- ids2indices(genesets$genesets, rownames(data_for_gs_analysis), 
 remove.empty=TRUE)
 ```
 
 
-27. Filter the gene sets according to their size, following the previous step of filtering by availability of expression data. Here we only include sets with more than 10 and less than 500 genes.
+6. Filter the gene sets according to their size, following the previous step of filtering by availability of expression data. Here we only include sets with more than 10 and less than 500 genes.
 ```{r}
 geneset_sizes <- unlist(lapply(genesets_filtered, length))
 geneset_indices <- which(geneset_sizes>=15 & geneset_sizes<200)
 ```
 
 ### Create design matrix and contrast
-28. Create the design matrix and contrast we want to test for. In this example we are looking for pathways differential between the Mesenchymal and Immunoreactive subtypes.
+7. Create the design matrix and contrast we want to test for. In this example we are looking for pathways differential between the Mesenchymal and Immunoreactive subtypes.
 
 ```{r}
 
@@ -244,7 +245,7 @@ contrast_mesenvsimmuno <- makeContrasts(
 ```
 
 ### Run ROAST[@roast]
-29. Run enrichment analysis and format the results to the ‘generic’ file format of Enrichment Map. Ths is a tab-delimited file that includes a gene set name, gene set description, p-value, FDR, phenotype and a comma-separated list of associated genes for every detected pathway. Depending on your dataset and computer, this command could take from a few minutes to an hour to run. If you receive the warning “In dnbinom(q, size = size, mu = mu, log = TRUE) : non-integer x”, the software has encountered unexpected non-integer values of gene expression, often indicating problems with upstream analysis such as suboptimal pre-processing or normalization procedures. A simple fix of rounding gene expression values may fix the error (data_for_gs_analysis$counts <- round(data_for_gs_analysis$counts)), however it should be investigated further. 
+8. Run enrichment analysis and format the results to the ‘generic’ file format of Enrichment Map. This is a tab-delimited file that includes a gene set name, gene set description, p-value, FDR, phenotype and a comma-separated list of associated genes for every detected pathway. Depending on your dataset and computer, this command could take from a few minutes to an hour to run. If you receive the warning “In dnbinom(q, size = size, mu = mu, log = TRUE) : non-integer x”, the software has encountered unexpected non-integer values of gene expression, often indicating problems with upstream analysis such as sub optimal pre-processing or normalization procedures. A simple fix of rounding gene expression values may fix the error (data_for_gs_analysis$counts <- round(data_for_gs_analysis$counts)), however it should be investigated further. 
 ```{r}
 mroast_results <- mroast(data_for_gs_analysis, genesets_filtered[geneset_indices],
                          design,contrast=contrast_mesenvsimmuno, nrot=10000)
@@ -254,7 +255,7 @@ mroast_descr <- unlist(lapply(rownames(mroast_results),
 
 
 ### Create generic enrichment map file from ROAST[@roast] results
-30. Inspect the results returned from ROAST[@roast]. The column "Direction" shows whether the gene set is enriched for up-regulated genes or down-regulated genes. To ensure compatibility with Enrichment Map, convert these values such that 1 represents up-regulated -1 represents down-regulated genes.
+9. Inspect the results returned from ROAST[@roast]. The column "Direction" shows whether the gene set is enriched for up-regulated genes or down-regulated genes. To ensure compatibility with Enrichment Map, convert these values such that 1 represents up-regulated -1 represents down-regulated genes.
 ```{r}
 mroast_results_file <- "mroast_results_generic_em.txt"
 
@@ -289,7 +290,7 @@ write.table(mroast_results_generic_em, paste(working_dir,mroast_results_file,sep
 
 
 ### Run Camera[@camera]
-31. Run pathway enrichment analysis with the Camera[@camera] R package. The analysis starts with the same files as ROAST[@roast] (see first four first steps of Supplementary Protocol 1C).
+10. Run pathway enrichment analysis with the Camera[@camera] R package. The analysis starts with the same files as ROAST[@roast] (see first four first steps of Supplementary Protocol 1C).
 ```{r}
 camera_results_file <- "camera_results_generic_em.txt"
 
@@ -310,7 +311,8 @@ camera_Phenotype <- unlist(lapply(camera_results[,"Direction"],
 camera_genes <- c()
 for(i in 1:length(rownames(camera_results))){
 	current_geneset <- unlist( 
-		genesets_filtered[ which( names( genesets_filtered ) %in% rownames(camera_results)[i])])
+		genesets_filtered[ which( names( genesets_filtered ) %in% 
+		                            rownames(camera_results)[i])])
  	current_genes <- c()
 	for(j in 1:length(current_geneset)){
 		if(j==length(current_geneset)){
@@ -337,10 +339,10 @@ write.table(camera_results_generic_em, paste(working_dir,camera_results_file,sep
 The results from Camera[@camera] or ROAST[@roast] can be input to Enrichment Map, following the protocol(start from step 6) in the main text.
 
 
-### (Optinal) Create an Enrichment map directly from R
+### (Optional) Create an Enrichment map directly from R
 Optional: Build Enrichment map from the above results
 
-Make sure that you have launch cytoscape and installed all required apps as listed in the main Protocol (Step 1 - 4)
+Make sure that you have launch Cytoscape and installed all required apps as listed in the main Protocol (Step 1 - 4)
 
 Build a network with Camera[@camera] results:
 ```{r}
@@ -366,11 +368,15 @@ results_filename <- paste(getwd(),working_dir,camera_results_file,sep="/")
 #######################################
 current_network_name <- paste(cur_model_name,pvalue_threshold,qvalue_threshold,sep="_")
 
-em_command = paste('enrichmentmap build analysisType="generic" gmtFile=',generic_gmt_file,
-                   'pvalue=',pvalue_threshold, 'qvalue=',qvalue_threshold,
+em_command = paste('enrichmentmap build analysisType="generic"',
+                   'gmtFile=',generic_gmt_file,
+                   'pvalue=',pvalue_threshold,
+                   'qvalue=',qvalue_threshold,
                    'similaritycutoff=',similarity_threshold,
-                   'coefficients=',similarity_metric,'enrichmentsDataset1=',results_filename,
-                   'expressionDataset1=',paste(getwd(),working_dir,expression_file,sep="/"),
+                   'coefficients=',similarity_metric,
+                   'enrichmentsDataset1=',results_filename,
+                   'expressionDataset1=',paste(getwd(),working_dir,
+                                               expression_file,sep="/"),
                    sep=" ")
 
 #enrichment map command will return the suid of newly created network.
@@ -389,12 +395,20 @@ if(grepl(pattern="Failed", response)){
 response <- renameNetwork(current_network_name, as.numeric(current_network_suid))
 ```
 
-When building a network if the commandGET returns an error similar to this:
+When building a network if the commandsGet returns an error similar to this:
 "RCy3::commandsGET, HTTP Error Code: 500
- url=http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic&gmtFile=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_March_01_2018_symbol.gmt&pvalue=%200.05&qvalue=%200.0001&similaritycutoff=%200.25&coefficients=%20JACCARD&enrichmentsDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/mroast_results_generic_em.txt&expressionDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt
+ url=http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic
+&gmtFile=[**path/to/file**]/data/Supplementary_Table3_Human_GOBP_ 
+AllPathways_no_GO_iea_March_01_2018_symbol.gmt &pvalue=%200.05&qvalue=%200.0001&similaritycutoff=%200.25&coefficients=%20JACCARD
+&enrichmentsDataset1=[**path/to/file**]/data/mroast_results_generic_em.txt
+&expressionDataset1=[**path/to/file**]/data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt
 Error in commandsGET(em_command) : "
 
-Copy the url (for example from the above error use "http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic&gmtFile=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_March_01_2018_symbol.gmt&pvalue=%200.05&qvalue=%200.0001&similaritycutoff=%200.25&coefficients=%20JACCARD&enrichmentsDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/mroast_results_generic_em.txt&expressionDataset1=%20/Users/risserlin/Dropbox%20(Bader%20Lab)/Ruth%20Isserlin's%20files/Sourcecode/Cytoscape_workflows/EnrichmentMapPipeline/./data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt") and paste it into a web browser to get a more descriptive error message.  Do not copy the above link to your web browser.  The url is specific to the machine you have run the notebook on. copy the url from your error message.
+Copy the url (for example from the above error use "http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic
+&gmtFile=[**path/to/file**]/data/Supplementary_Table3_Human_GOBP_ 
+AllPathways_no_GO_iea_March_01_2018_symbol.gmt &pvalue=%200.05&qvalue=%200.0001&similaritycutoff=%200.25&coefficients=%20JACCARD
+&enrichmentsDataset1=[**path/to/file**]/data/mroast_results_generic_em.txt
+&expressionDataset1=[**path/to/file**]/data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt") and paste it into a web browser to get a more descriptive error message.  **Do not copy the above link to your web browser.  The url is specific to the machine you have run the notebook on. copy the url from your error message.**
 
 Sometimes the above error will come back when everything is fine.  If there are no results returned because nothing passes the thresholds you specified the above error with appear in R.  In the web browser after following the above link will show the error "Failed: None of the gene sets have passed the filter. Try relaxing the gene set filter parameters."
 
@@ -410,11 +424,15 @@ results_filename <- paste(getwd(),working_dir,mroast_results_file,sep="/")
 #######################################
 current_network_name <- paste(cur_model_name,pvalue_threshold,qvalue_threshold,sep="_")
 
-em_command = paste('enrichmentmap build analysisType="generic" gmtFile=',generic_gmt_file,
-                   'pvalue=',pvalue_threshold, 'qvalue=',qvalue_threshold,
+em_command = paste('enrichmentmap build analysisType="generic"',
+                   'gmtFile=',generic_gmt_file,
+                   'pvalue=',pvalue_threshold, 
+                   'qvalue=',qvalue_threshold,
                    'similaritycutoff=',similarity_threshold,
-                   'coefficients=',similarity_metric,'enrichmentsDataset1=',results_filename,
-                   'expressionDataset1=',paste(getwd(),working_dir,expression_file,sep="/"),
+                   'coefficients=',similarity_metric,
+                   'enrichmentsDataset1=',results_filename,
+                   'expressionDataset1=',paste(getwd(),working_dir,
+                                               expression_file,sep="/"),
                    sep=" ")
 
 #enrichment map command will return the suid of newly created network.

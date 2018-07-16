@@ -37,7 +37,7 @@ if(check(add_setup) == 0){
 }
 ```
 
-
+# Supplementary Protocol 1 – create a gene list by analyzing gene expression data from RNA-seq with edgeR
 This protocol processes RNA-seq data using the R programming environment and specialized packages from Bioconductor to create genes lists. The scripts are available for download and novice users can copy and paste commands into the R console. To create gene expression data for **Protocol step 5B**, we downloaded gene expression data from the Ovarian Serous Cystadenocarcinoma project of The Cancer Genome Atlas (TCGA)[@TCGA], http://cancergenome.nih.gov via the Genomic Data Commons (GDC) portal[@GDC] on 2017-06-14 using TCGABiolinks R package[@TCGABiolinks]. The data includes 544 samples available as RMA-normalized microarray data (Affymetrix HG-U133A), and 309 samples available as RNA-seq data, with reads mapped to a reference genome using MapSplice[@MapSplice] and read counts per transcript determined using the RSEM method[@RSEM]. RNA-seq data are labeled as ‘RNA-Seq V2’, see details at: https://wiki.nci.nih.gov/display/TCGA/RNASeq+Version+2). The RNA-SeqV2 data consists of raw counts similar to regular RNA-seq but RSEM (RNA-Seq by Expectation Maximization) data can be used with the edgeR method.
 
 ```{r autodoc, child='supplementary_protocols123_setup.Rmd', eval=add_setup, echo=add_setup}
@@ -75,7 +75,7 @@ RNASeq <- read.table(
 ```
 
 ### Load subtype information
-3. Load subtype classification of samples. To calculate differential expression, we need to define at least two sample classes. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into mesenchymal and immunoreactive classes (class definitions were obtained from Verhaak et al.[@OV] Supplementary Table 1, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal.
+3. Load subtype classification of samples. To calculate differential expression, we need to define at least two sample classes. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into Mesenchymal and Immunoreactive classes (class definitions were obtained from Verhaak et al.[@OV] Supplementary Table 1, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal.
 
 ```{r}
 classDefinitions_RNASeq <- read.table( 
@@ -106,8 +106,15 @@ d <- calcNormFactors(d)
 #create multidimensional scaling(MDS) plot.  The command below will automatically 
 # generate the plot containing all samples where each subtype is a different color.  
 #Ideally there should be a good separation between the different classes.
-mds_output <- plotMDS(d, labels=classDefinitions_RNASeq$SUBTYPE, 
-col= c("darkgreen","blue","red", "orange")[factor(classDefinitions_RNASeq$SUBTYPE)])
+mds_output <- plotMDS(d, labels=NULL, pch = 1, 
+col= c("darkgreen","blue","red", "orange")[factor(classDefinitions_RNASeq$SUBTYPE)], 
+xlim = c(-2.5,4), ylim = c(-2.5,4))
+
+
+legend("topright", 
+       legend=levels(factor(classDefinitions_RNASeq$SUBTYPE)), 
+       pch=c(1), col= c("darkgreen","blue","red", "orange"),title="Class",  
+       bty = 'n', cex = 0.75)
 
 #calculate dispersion
 d <- estimateCommonDisp(d)
@@ -207,13 +214,14 @@ head(topgenes_qvalue005)
 
 #write results out to the file.  This is an example of a set that can be used for
 # Protocol 1
-write.table(topgenes_qvalue005, "MesenchymalvsImmunoreactive_RNAseq_allsignificantgenes.txt", 
+write.table(topgenes_qvalue005, 
+            "MesenchymalvsImmunoreactive_RNAseq_allsignificantgenes.txt", 
             col.names=FALSE, sep="\t", row.names=FALSE, quote=FALSE)
 
 ```
 
 ### Create GSEA input list
-8b. Create a two-column rank (.RNK) file of all gene IDs and corresponding scores to for GSEA pre-ranked analysis. One option is to rank genes by t-statistic of differential gene expression. GSEA will look for enrichment in the set of most differentially expressed genes at the top of the list as well as those at the bottom of the list. Genes at the top of the list are more highly expressed in class A of samples (e.g., mesenchymal) while genes at the bottom are highly expressed in class B (e.g., immunoreactive). An alternative score can be computed by multiplying direction (sign) of fold change and logarithm of p-value for each gene.
+8b. Create a two-column rank (.RNK) file of all gene IDs and corresponding scores to for GSEA pre-ranked analysis. One option is to rank genes by t-statistic of differential gene expression. GSEA will look for enrichment in the set of most differentially expressed genes at the top of the list as well as those at the bottom of the list. Genes at the top of the list are more highly expressed in class A of samples (e.g., Mesenchymal) while genes at the bottom are highly expressed in class B (e.g., Immunoreactive). An alternative score can be computed by multiplying direction (sign) of fold change and logarithm of p-value for each gene.
 ```{r}
 #calculate ranks
 ranks_RNAseq = sign(tt$table$logFC) * -log10(tt$table$PValue)
@@ -234,7 +242,7 @@ colnames(ranks_RNAseq) <- c("GeneName","rank")
 ranks_RNAseq <- ranks_RNAseq[order(as.numeric(ranks_RNAseq[,2]),decreasing = TRUE),]
 
 write.table(ranks_RNAseq, paste(working_dir,
-                                "Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk",sep="/"), 
+                "Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk",sep="/"), 
             col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
 ```
 
@@ -242,7 +250,7 @@ write.table(ranks_RNAseq, paste(working_dir,
 ### Create expression file
 
 9a. Create an expression file for the enrichment map and save it to a file in the working folder. The optional expression file is similar to the expression matrix except for an additional column on the left edge of the matrix. The field often includes gene description however any text value can be added.
-```{r, message=FALSE, warning=FALSE}
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
 
 #fix issue with biomart not working because of url redirection
 options(RCurlOptions=list(followlocation=TRUE, postredir=2L))
@@ -272,7 +280,8 @@ genes = getBM(attributes = c( 'hgnc_symbol', 'description'), filters='hgnc_symbo
               values=genenames, mart=mart);
 genes$description = gsub("\\[Source.*", "", genes$description);
 
-EM_expressionFile_RNAseq <- merge(genes,EM_expressionFile_RNAseq,  all.y=TRUE,by.x=1, by.y=1)
+EM_expressionFile_RNAseq <- merge(genes,EM_expressionFile_RNAseq,  
+                                  all.y=TRUE,by.x=1, by.y=1)
 colnames(EM_expressionFile_RNAseq)[1] <- "Name"
 colnames(EM_expressionFile_RNAseq)[2] <- "Description"
 
@@ -315,8 +324,8 @@ ann_colors = list(SUBTYPE = c(Immunoreactive="blue", Mesenchymal="red",
                               Proliferative = "orange",Differentiated="darkgreen"))
 col.pal <- rev(brewer.pal(11, "RdBu"))
 
-genes_to_select <- unlist(lapply( rownames(tt$table)[which(tt$table$FDR<0.05)], function(data) 
-  {unlist(strsplit(data,"\\|"))[1]}))
+genes_to_select <- unlist(lapply( rownames(tt$table)[which(tt$table$FDR<0.05)], 
+                                  function(data) {unlist(strsplit(data,"\\|"))[1]}))
 
 matrix_for_heatmap <- as.matrix(EM_expressionFile_RNAseq[which(EM_expressionFile_RNAseq[,1] 
                             %in% genes_to_select ),3:dim(EM_expressionFile_RNAseq)[2] ])
