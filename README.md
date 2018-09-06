@@ -11,7 +11,7 @@ Set of R notebooks to transform expression data to a ranked list and run them th
  1. [Supplemental Protocol 1](https://baderlab.github.io/Cytoscape_workflows/EnrichmentMapPipeline/supplemental_protocol1_rnaseq.html) - convert raw RNASeq expression data to a ranked list
  1. [Supplemental Protocol 2](https://baderlab.github.io/Cytoscape_workflows/EnrichmentMapPipeline/supplemental_protocol2_microarray.html) - convert RMA normalized microarray expression data to a ranked list
  1. [Supplemental Protocol 3](https://baderlab.github.io/Cytoscape_workflows/EnrichmentMapPipeline/supplemental_protocol3_R_gse_methods.html) - Pathway Enrichment Analysis in R using ROAST and Camera
- 1. [Supplemental Protocol 4](Supplemental_protocol_4_manual_phenotype_rand_with_edgeR.html) - perform phenotype randomizations using edgeR with GSEA.
+ 1. [Supplemental Protocol 4](https://baderlab.github.io/Cytoscape_workflows/EnrichmentMapPipeline/Supplemental_protocol_4_manual_phenotype_rand_with_edgeR.html) - perform phenotype randomizations using edgeR with GSEA.
  1. [Main Protocol - Create Enrichment Map](https://baderlab.github.io/Cytoscape_workflows/EnrichmentMapPipeline/Protocol2_createEM.html) - run GSEA on ranked list and automatically create an Enrichment Map from the results.
  
 # Cell Cell Interactions Workflow
