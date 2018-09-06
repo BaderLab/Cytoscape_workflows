@@ -33,13 +33,13 @@ csl: nature-protocols.csl
 
 ## Equipment
 ### Hardware requirements:
-  * A recent personal computer with at least 8 gigabytes of memory (RAM).
+  * A personal computer with at least 8 gigabytes of memory (RAM).
 Software requirements:
   * The R statistical computing environment (http://www.r-project.org/). We suggest using the integrated development environment RStudio (https://www.rstudio.com/).
-  * Required R packages: Biobase, Limma and GSA are available from Bioconductor (https://www.bioconductor.org/)
+  * Required R packages: Biobase, limma and GSA are available from Bioconductor (https://www.bioconductor.org/)
 
 ### Data requirements:
-  * Supplementary_Table10_TCGA_Microarray_rmanormalized.txt corresponds to the RMA normalized Affymetrix mRNA transcript expression data for serous ovarian cancer samples as downloaded from the GDC portal65. Normalization is required to compute differential gene expression values across subtypes, as performed in Supplementary Protocol 1A.
+  * Supplementary_Table10_TCGA_Microarray_rmanormalized.txt corresponds to the RMA normalized Affymetrix mRNA transcript expression data from The Cancer Genome Atlas(TCGA) for serous ovarian cancer samples as downloaded from the GDC portal. Normalization is required to compute differential gene expression values across subtypes, as performed in Supplementary Protocol 1A.
   * Supplementary_Table12_TCGA_RNASeq_rawcounts.txt corresponds to read counts per mRNA transcript determined using the RSEM method. These counts can be used to compare gene expression between subtypes using the edgeR analysis tool, as performed in Supplementary Protocol 1B. The counts are not pre-normalized and the normalization step using edgeR is part of the protocol.
   * Supplementary_Table11_Microarray_classdefinitions.txt and Supplementary_- 
 Table13_RNASeq_classdefinitions.txt define the subtype classification of ovarian cancer samples (Immunoreactive, Mesenchymal, Differentiated, Proliferative) (Verhaak et al.[@OV] supplementary table 1, column 3). This information is used to extract two subgroups of interest, Mesenchymal and Immunoreactive.

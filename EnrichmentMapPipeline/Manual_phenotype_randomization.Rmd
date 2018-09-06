@@ -15,8 +15,8 @@ tryCatch(expr = { library("edgeR")},
            biocLite("edgeR")}, 
          finally = library("edgeR"))
 
-working_dir <- paste(".","data",sep="/")
-rand_working_dir <- paste(".","data","Randomizations",sep="/")
+working_dir <- file.path(".","data")
+rand_working_dir <- file.path(".","data","Randomizations")
 
 #The field in the class definition file that defines the classes of the data.
 data_classes <- "SUBTYPE"
@@ -26,14 +26,14 @@ data_classes <- "SUBTYPE"
 2. Load the expression dataset of 300 tumours, with 79 classified as Immunoreactive, 72 classified as Mesenchymal, 69 classified as Differentiated, and 80 classified as Proliferative samples. The TCGA counts data was retrieved from the GDC and contained counts per mRNA transcript determined using the RSEM method for 19947 transcripts and 300 samples.
 
 ```{r}
-RNASeq <- read.table(  paste(working_dir,"Supplementary_Table12_TCGA_RNASeq_rawcounts.txt",sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+RNASeq <- read.table(  file.path(working_dir,"Supplementary_Table12_TCGA_RNASeq_rawcounts.txt"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
 ```
 
 
 3. Load subtype classification of samples. To calculate differential expression, we need to define at least two sample classes. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into mesenchymal and immunoreactive classes (class definitions were obtained from Verhaak et al. Supplementary Table 1, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal.
 
 ```{r}
-classDefinitions_RNASeq <- read.table( paste(working_dir, "Supplementary_Table13_RNASeq_classdefinitions.txt", sep="/"), header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+classDefinitions_RNASeq <- read.table( file.path(working_dir, "Supplementary_Table13_RNASeq_classdefinitions.txt"), header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
 ```
 
 4. Filter RNA-seq reads. RNA-seq data are processed following the edgeR protocol15 that filters reads based on the counts per million (CPM) statistic. RNA-seq read counts are converted to CPM values and genes with CPM > 1 in at least 50 of the samples are retained for further study (50 is the minimal sample size in the classes). This step removes genes with very low read counts that are likely not expressed in the majority of samples and cause noise in the data. Note, CPM filtering is used to remove low counts while differential gene expression analysis is based on normalized read counts which are generated below (step 6). 
@@ -99,7 +99,7 @@ colnames(ranks_RNAseq) <- c("GeneName","rank")
 
 #sort ranks in decreasing order
 ranks_RNAseq <- ranks_RNAseq[order(as.numeric(ranks_RNAseq[,2]),decreasing = TRUE),]
-rnk_file <- paste(rand_working_dir,"MesenvsImmuno_RNASeq_ranks.rnk",sep="/")
+rnk_file <- file.path(rand_working_dir,"MesenvsImmuno_RNASeq_ranks.rnk")
 write.table(ranks_RNAseq, rnk_file, 
             col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
 
@@ -135,18 +135,19 @@ EM_expressionFile_RNAseq <- merge(genes,EM_expressionFile_RNAseq,  all.y=TRUE,by
 colnames(EM_expressionFile_RNAseq)[1] <- "Name"
 colnames(EM_expressionFile_RNAseq)[2] <- "Description"
 
-write.table(EM_expressionFile_RNAseq, paste(rand_working_dir,"Supplementary_Table6_TCGA_OV_RNAseq_expression.txt", sep="/"),
+write.table(EM_expressionFile_RNAseq, 
+            file.path(rand_working_dir,"Supplementary_Table6_TCGA_OV_RNAseq_expression.txt"),
             col.name=TRUE,sep="\t", row.names=FALSE, quote=FALSE)
 
 #write out a GSEA classes file. (optional)
-fileConn <- file(paste(rand_working_dir,"Supplementary_Table9_TCGA_OV_RNAseq_classes.cls",sep="/"))
+fileConn <- file(file.path(rand_working_dir,"Supplementary_Table9_TCGA_OV_RNAseq_classes.cls"))
 writeLines(c(paste(length(classDefinitions_RNASeq[,data_classes]), "4 1"), 
              paste("# ", unique(classDefinitions_RNASeq[,data_classes])[1], " ",
                    unique(classDefinitions_RNASeq[,data_classes])[2], " ",
                    unique(classDefinitions_RNASeq[,data_classes])[3], " ",
                    unique(classDefinitions_RNASeq[,data_classes])[4])), fileConn)
 write.table(t(classDefinitions_RNASeq[,data_classes]), 
-            paste(rand_working_dir,"Supplementary_Table9_TCGA_OV_RNAseq_classes.cls",sep="/"), col.name=FALSE, sep="\t",
+            file.path(rand_working_dir,"Supplementary_Table9_TCGA_OV_RNAseq_classes.cls"), col.name=FALSE, sep="\t",
             row.names=FALSE, quote=FALSE, append=TRUE)
 close(fileConn)
 ```
@@ -160,7 +161,7 @@ gsea_jar <- "./gsea-3.0.jar"
 
 #Gsea takes a long time to run.  If you have already run GSEA manually or previously there is no need to re-run GSEA.  Make sure the 
 # gsea results are in the current directory and the notebook will be able to find them and use them.
-run_gsea = TRUE
+run_gsea = FALSE
 
 # leave blank if you want the notebook to discover the gsea directory for itself
 #gsea_directory = paste(working_dir,"Mesen_vs_Immuno.GseaPreranked.1497635459262",sep="/") 
@@ -171,25 +172,35 @@ expression_file <- "Supplementary_Table6_TCGA_OV_RNAseq_expression.txt"
 classes_file <- "Supplementary_Table9_TCGA_OV_RNAseq_classes.cls"
 
 #TODO: change this to update to the latest gmt file.
-dest_gmt_file <- paste(working_dir,"Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_July_01_2017_symbol.gmt" ,sep="/")
+dest_gmt_file <- file.path(working_dir,"Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_July_01_2017_symbol.gmt" )
 
 ```
 
 
 Run GSEA with geneset randomization
 ```{r}
+timestamp()
+start_gs_perm <- Sys.time()
 if(run_gsea){
   command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", dest_gmt_file, "-rnk" ,rnk_file, "-collapse false -nperm 1000 -permute gene_set -scoring_scheme weighted -rpt_label ",paste(analysis_name,"gsrand",sep="_"),"  -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,rand_working_dir, "-gui false > gsea_output.txt",sep=" ")
   system(command)
 }
+stop_gs_perm <- Sys.time()
+timestamp()
+difftime(stop_gs_perm,start_gs_perm,"mins")
 ```
 
 Run GSEA with phenotype randomization
 ```{r}
+timestamp()
+start_pheno_perm <- Sys.time()
 if(run_gsea){
-  command <- paste("java  -Xmx4G -cp",gsea_jar,  "xtools.gsea.Gsea -gmx", dest_gmt_file, "-res" ,paste(rand_working_dir,expression_file,sep="/"),"-cls",paste(rand_working_dir,paste(classes_file,"#Mesenchymal_versus_Immunoreactive",sep=""),sep="/"), "-collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute phenotype -rnd_type no_balance -scoring_scheme weighted -rpt_label ",paste(analysis_name,"phenorand",sep="_")," -metric Signal2Noise -sort real -order descending -create_gcts false -create_svgs false -include_only_symbols true -make_sets true -median false  -num 100 -plot_top_x 20 -rnd_seed 12345 -save_rnd_lists false -set_max 200 -set_min 15 -zip_report false -out" ,rand_working_dir, "-gui false > gsea_output.txt",sep=" ")
+  command <- paste("java  -Xmx4G -cp",gsea_jar,  "xtools.gsea.Gsea -gmx", dest_gmt_file, "-res" ,file.path(rand_working_dir,expression_file),"-cls",file.path(rand_working_dir,paste(classes_file,"#Mesenchymal_versus_Immunoreactive",sep="")), "-collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute phenotype -rnd_type no_balance -scoring_scheme weighted -rpt_label ",paste(analysis_name,"phenorand",sep="_")," -metric Signal2Noise -sort real -order descending -create_gcts false -create_svgs false -include_only_symbols true -make_sets true -median false  -num 100 -plot_top_x 20 -rnd_seed 12345 -save_rnd_lists false -set_max 200 -set_min 15 -zip_report false -out" ,rand_working_dir, "-gui false > gsea_output.txt",sep=" ")
   system(command)
 }
+stop_pheno_perm <- Sys.time()
+timestamp()
+difftime(stop_pheno_perm,start_pheno_perm,"mins")
 ```
 
 
@@ -207,68 +218,75 @@ Instead of randomizing in GSEA create our own phenotype randomization in R.  Do 
  *X = 1000 for this analysis
 
 ```{r}
-library("foreach")
-library("doParallel")
-
-
-cl <- makeCluster(detectCores() - 1)
-registerDoParallel(cl, cores = detectCores() - 1)
-
-  
-  data = foreach(i = 6:1000, .packages = c("edgeR"),
-               .combine = rbind) %dopar% {
-                 try({
-    analysis_name <- paste("Rand",i,sep="_")
-
-    rand_class <- sample(classDefinitions_RNASeq$SUBTYPE)
+timestamp()
+start_rand_perm <- Sys.time()
+if(run_gsea){
+    library("foreach")
+    library("doParallel")
     
-    # create data structure to hold counts and subtype information for each sample.
-    d <- DGEList(counts=counts, group=rand_class)
     
-    #Normalize the data
-    d <- calcNormFactors(d)
+    cl <- makeCluster(detectCores() - 1)
+    registerDoParallel(cl, cores = detectCores() - 1)
     
-    #calculate dispersion
-    d <- estimateCommonDisp(d)
-    d <- estimateTagwiseDisp(d)
+      
+      data = foreach(i = 1:10, .packages = c("edgeR"),
+                   .combine = rbind) %dopar% {
+                     try({
+        analysis_name <- paste("Rand",i,sep="_")
     
-    #the below regular expression excludes gene names that are ? or that start with LOC
-    # any number ofadditional terms can be added to the regular expresion, for example 
-    # to exclude any genes that start with "His" add |^His to the regular expression
-    exclude <- grep("\\?|^LOC", rownames(d), value=T)
-    d <- d[which(!rownames(d) %in% exclude),]
-    
-    #calculate differential expression statistics with a simple design
-    de <- exactTest(d, pair=c("Immunoreactive","Mesenchymal"))
-    tt_exact_test <- topTags(de,n=nrow(d))
-    
-    tt <- tt_exact_test
-    #calculate ranks
-    ranks_RNAseq = sign(tt$table$logFC) * -log10(tt$table$PValue)
-    
-    #gene names from the TCGA set contain gene name and entrez gene ids separated by ‘|’
-    # for all subsequent enrichment analysis we need to have just one id.  Separate the names 
-    # into their two ids.
-    genenames <- unlist(lapply( rownames(tt$table), function(data) 
-      {unlist(strsplit(data,"\\|"))[1]}))
-    geneids <- unlist(lapply( rownames(tt$table),  function(data) {unlist(strsplit(data,"\\|"))[2]})) 
-    
-    #create ranks file
-    ranks_RNAseq <- cbind(genenames, ranks_RNAseq)
-    colnames(ranks_RNAseq) <- c("GeneName","rank")
-    
-    #sort ranks in decreasing order
-    ranks_RNAseq <- ranks_RNAseq[order(as.numeric(ranks_RNAseq[,2]),decreasing = TRUE),]
-    rank_filename <- paste(rand_working_dir,paste("rand",i,"ranks.rnk",sep="_"),sep="/")
-    write.table(ranks_RNAseq, rank_filename, 
-                col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
-    
-    #need to set permutation number to 1 in order for the NES to be calculated.  If you set it to zero the the results have no p-value, fdr or NES values. 
-     command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", dest_gmt_file, "-rnk" ,rank_filename, "-collapse false -nperm 1 -permute gene_set -scoring_scheme weighted -rpt_label ",analysis_name,"  -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,rand_working_dir, "-gui false > gsea_output.txt",sep=" ")
-      system(command)
- })
-               }
-  stopCluster(cl)
+        rand_class <- sample(classDefinitions_RNASeq$SUBTYPE)
+        
+        # create data structure to hold counts and subtype information for each sample.
+        d <- DGEList(counts=counts, group=rand_class)
+        
+        #Normalize the data
+        d <- calcNormFactors(d)
+        
+        #calculate dispersion
+        d <- estimateCommonDisp(d)
+        d <- estimateTagwiseDisp(d)
+        
+        #the below regular expression excludes gene names that are ? or that start with LOC
+        # any number ofadditional terms can be added to the regular expresion, for example 
+        # to exclude any genes that start with "His" add |^His to the regular expression
+        exclude <- grep("\\?|^LOC", rownames(d), value=T)
+        d <- d[which(!rownames(d) %in% exclude),]
+        
+        #calculate differential expression statistics with a simple design
+        de <- exactTest(d, pair=c("Immunoreactive","Mesenchymal"))
+        tt_exact_test <- topTags(de,n=nrow(d))
+        
+        tt <- tt_exact_test
+        #calculate ranks
+        ranks_RNAseq = sign(tt$table$logFC) * -log10(tt$table$PValue)
+        
+        #gene names from the TCGA set contain gene name and entrez gene ids separated by ‘|’
+        # for all subsequent enrichment analysis we need to have just one id.  Separate the names 
+        # into their two ids.
+        genenames <- unlist(lapply( rownames(tt$table), function(data) 
+          {unlist(strsplit(data,"\\|"))[1]}))
+        geneids <- unlist(lapply( rownames(tt$table),  function(data) {unlist(strsplit(data,"\\|"))[2]})) 
+        
+        #create ranks file
+        ranks_RNAseq <- cbind(genenames, ranks_RNAseq)
+        colnames(ranks_RNAseq) <- c("GeneName","rank")
+        
+        #sort ranks in decreasing order
+        ranks_RNAseq <- ranks_RNAseq[order(as.numeric(ranks_RNAseq[,2]),decreasing = TRUE),]
+        rank_filename <- file.path(rand_working_dir,paste("rand",i,"ranks.rnk",sep="_"))
+        write.table(ranks_RNAseq, rank_filename, 
+                    col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
+        
+        #need to set permutation number to 1 in order for the NES to be calculated.  If you set it to zero the the results have no p-value, fdr or NES values. 
+         command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", dest_gmt_file, "-rnk" ,rank_filename, "-collapse false -nperm 1 -permute gene_set -scoring_scheme weighted -rpt_label ",analysis_name,"  -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,rand_working_dir, "-gui false > gsea_output.txt",sep=" ")
+          system(command)
+     })
+                   }
+      stopCluster(cl)
+}
+ stop_rand_perm <- Sys.time()
+ timestamp()
+ difftime(stop_rand_perm,start_rand_perm,"mins")
 ```
 
 
@@ -285,13 +303,13 @@ all_rand_es <- c()
 all_rand_nes <- c()
 
 for(i in 1:length(rand_directories)){
-    current_rand_files <- list.files(path = paste(rand_working_dir,rand_directories[i],sep="/"), pattern = "gsea_report_for_na_")
+    current_rand_files <- list.files(path = file.path(rand_working_dir,rand_directories[i]), pattern = "gsea_report_for_na_")
     #restrict to just the xls file. 
     current_rand_files <- current_rand_files[grep(current_rand_files, pattern="\\.xls")]
     
     #load the positive files
     for(j in 1:length(current_rand_files)){
-          rand_results <- read.table(  paste(rand_working_dir,rand_directories[i],current_rand_files[j],sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+          rand_results <- read.table(  file.path(rand_working_dir,rand_directories[i],current_rand_files[j]),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
 
           es_values <- data.frame(rand_results$NAME, rand_results$ES)
           nes_values <- data.frame(rand_results$NAME, rand_results$NES)
@@ -313,12 +331,12 @@ for(i in 1:length(rand_directories)){
 ###Load in the real rankings
 ```{r}
  gsea_directory <- list.files(path = rand_working_dir, pattern = "Mesen_vs_Immuno_gsrand")
-gsea_results_files <- list.files(path = paste(rand_working_dir,gsea_directory,sep="/"), pattern = "gsea_report_for_na_")
+gsea_results_files <- list.files(path = file.path(rand_working_dir,gsea_directory), pattern = "gsea_report_for_na_")
 gsea_results_files<- gsea_results_files[grep(gsea_results_files, pattern="\\.xls")]
 actual_gsea_results <- c()
     #load the positive files
     for(j in 1:length(gsea_results_files)){
-          actual_gsea_results_1 <-  read.table(  paste(rand_working_dir,gsea_directory,gsea_results_files[j],sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+          actual_gsea_results_1 <-  read.table(  file.path(rand_working_dir,gsea_directory,gsea_results_files[j]),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
             actual_gsea_results <- rbind(actual_gsea_results , actual_gsea_results_1)
          
 }
@@ -338,7 +356,7 @@ for(m in 1:dim(actual_gsea_results)[1]){
 new_fdr_gsea_results_files <- actual_gsea_results
 new_fdr_gsea_results_files$FDR.q.val <- new_fdr
   
-write.table(new_fdr_gsea_results_files , paste(rand_working_dir,"new_fdr_gsea_results_files_edger_rand.txt ",sep="/"), 
+write.table(new_fdr_gsea_results_files , file.path(rand_working_dir,"new_fdr_gsea_results_files_edger_rand.txt "), 
             col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
 ```
 
@@ -352,24 +370,24 @@ By the numbers only:
 ```{r}
 #load in gsrand
 gsea_directory <- list.files(path = rand_working_dir, pattern = "Mesen_vs_Immuno_gsrand")
-gsea_results_files <- list.files(path = paste(rand_working_dir,gsea_directory,sep="/"), pattern = "gsea_report_for_na_")
+gsea_results_files <- list.files(path = file.path(rand_working_dir,gsea_directory), pattern = "gsea_report_for_na_")
 gsea_results_files<- gsea_results_files[grep(gsea_results_files, pattern="\\.xls")]
 gsrand_gsea_results <- c()
     #load the positive files
     for(j in 1:length(gsea_results_files)){
-          gsrand_gsea_results_1 <-  read.table(  paste(rand_working_dir,gsea_directory,gsea_results_files[j],sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+          gsrand_gsea_results_1 <-  read.table(  file.path(rand_working_dir,gsea_directory,gsea_results_files[j]),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
             gsrand_gsea_results <- rbind(gsrand_gsea_results , gsrand_gsea_results_1)
          
     }
 
 #load in phenorand
 gsea_directory <- list.files(path = rand_working_dir, pattern = "Mesen_vs_Immuno_phenorand")
-gsea_results_files <- list.files(path = paste(rand_working_dir,gsea_directory,sep="/"), pattern = "gsea_report_for")
+gsea_results_files <- list.files(path = file.path(rand_working_dir,gsea_directory), pattern = "gsea_report_for")
 gsea_results_files<- gsea_results_files[grep(gsea_results_files, pattern="\\.xls")]
 phenorand_gsea_results <- c()
     #load the positive files
     for(j in 1:length(gsea_results_files)){
-          phenorand_gsea_results_1 <-  read.table(  paste(rand_working_dir,gsea_directory,gsea_results_files[j],sep="/"),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
+          phenorand_gsea_results_1 <-  read.table(  file.path(rand_working_dir,gsea_directory,gsea_results_files[j]),  header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
             phenorand_gsea_results <- rbind(phenorand_gsea_results , phenorand_gsea_results_1)
          
 }
@@ -388,10 +406,7 @@ plot(cbind(gsrand_gsea_results$FDR.q.val, new_fdr), ylab="edgeR randomization FD
 
 Create a subset of the above plot to include any genesets where the FDR is significant in at least one of the analyses
 
-There are quite a few discrpancies between the two methods:
 
- 1. gs rand has `r dim(temp[which(temp[,1]<0.01 & temp[,2]>0.01),])[1]` genesets significant not found in eggeR randomization.
- 1. edgeR randomizations has  `r dim(temp[which(temp[,1]>0.01 & temp[,2]<0.01),])[1]` genesets significant not found in gs rand.
 ```{r}
 temp<- cbind(gsrand_gsea_results$FDR.q.val, new_fdr)
 
@@ -403,7 +418,7 @@ plot(temp[which(temp[,1]<0.01 | temp[,2]<0.01),], ylab="edgeR randomization FDR"
 Venn Diagram of overlaps
 ```{r}
 library(VennDiagram)
-three_method_overlap = paste(rand_working_dir,"3_results_overlap_v1.png",sep="/")
+three_method_overlap = file.path(rand_working_dir,"3_results_overlap_v1.png")
 png(three_method_overlap)
   a <- gsrand_gsea_results$NAME[which(gsrand_gsea_results$FDR.q.val < 0.01)]
   b <- phenorand_gsea_results$NAME[which(phenorand_gsea_results$FDR.q.val < 0.01)]

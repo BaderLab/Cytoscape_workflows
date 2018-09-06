@@ -40,7 +40,7 @@ if(check(add_setup) == 0){
 ```
 
 
-```{r autodoc, child='supplementary_protocols123_setup.Rmd', eval=add_setup, echo=add_setup}
+```{r autodoc, child='supplementary_protocols123_setup.Rmd', eval=FALSE, echo=FALSE}
 ``` 
 
 
@@ -108,7 +108,7 @@ rx = gregexpr("(?<=<a href=\")(.*.GOBP_AllPathways_no_GO_iea.*.)(.gmt)(?=\">)",
   contents, perl = TRUE)
 gmt_file = unlist(regmatches(contents, rx))
 
-dest_gmt_file <- paste(working_dir,paste("Supplementary_Table3_",gmt_file,sep="") ,sep="/")
+dest_gmt_file <- file.path(working_dir,paste("Supplementary_Table3_",gmt_file,sep="") )
 
 download.file(
     paste(gmt_url,gmt_file,sep=""),
@@ -136,7 +136,7 @@ capture.output(
 names(genesets$genesets) <- genesets$geneset.names
 ```
 
-4. Specify the expression dataset to be used for the analysis. You can use the MinimalSet from Supplementary protocol 1A or the DGEList variable d from Supplementary protocol 1B. For our RNASeq dataset, each row of the expression set is annotated with gene symbol and EntrezGene ID separated by “|”. To match the gene set file we need to remove the EntrezGene IDs from the row names. We choose to use gene symbols to simplify interpretation of enriched pathways and associated genes.
+4. Specify the expression dataset to be used for the analysis. You can use the MinimalSet from Supplementary protocol 1A or the DGEList variable d from Supplementary protocol 1B. For our RNA-seq dataset, each row of the expression set is annotated with gene symbol and EntrezGene ID separated by “|”. To match the gene set file we need to remove the EntrezGene IDs from the row names. We choose to use gene symbols to simplify interpretation of enriched pathways and associated genes.
 
 **(optional) Recreate the DGEList from supplementary protocol rnaseq (Steps 1 -5 in Supplementary protocol 1 rnaseq) or if you are within the same sesison you can use the d variable.**
 ```{r}
@@ -147,10 +147,10 @@ if(dataType_rnaseq){
                finally = library("edgeR"))
       
       RNAseq <- read.table( 
-        paste(working_dir,"Supplementary_Table12_TCGA_RNASeq_rawcounts.txt",sep="/"), 
+        file.path(working_dir,"Supplementary_Table12_TCGA_RNASeq_rawcounts.txt"), 
         header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
       classDefinitions_RNAseq <-read.table(
-        paste(working_dir,"Supplementary_Table13_RNASeq_classdefinitions.txt",sep="/"),
+        file.path(working_dir,"Supplementary_Table13_RNASeq_classdefinitions.txt"),
         header = TRUE,  sep = "\t", quote="\"", stringsAsFactors = FALSE)
       
       cpms <- cpm(RNAseq)
@@ -192,10 +192,10 @@ if(!dataType_rnaseq){
   
     #load in files
     expressionMatrix <- as.matrix(read.table(
-      paste(working_dir, "Supplementary_Table1_TCGA_Microarray_rmanormalized.txt",sep="/"), 
+      file.path(working_dir, "Supplementary_Table1_TCGA_Microarray_rmanormalized.txt"), 
       header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE))
     classDefinitions <- read.table( 
-      paste(working_dir,"Supplementary_Table3_Microarray_classdefinitions.txt",sep="/"), 
+      file.path(working_dir,"Supplementary_Table3_Microarray_classdefinitions.txt"), 
       header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
     identical(colnames(expressionMatrix), classDefinitions$patient)
     
@@ -212,7 +212,7 @@ if(!dataType_rnaseq){
 
 ```
 
-If you haven't defined the data above using RNASeq data or microarray data, Set data to be your DGEList of MinimalSet.
+If you haven't defined the data above using RNA-seq data or microarray data, Set data to be your DGEList of MinimalSet.
 ```{r}
 #Should be a minimalSet or DGEList
 #data_for_gs_analysis <- data you want to use for the analysis.  
@@ -255,7 +255,9 @@ mroast_descr <- unlist(lapply(rownames(mroast_results),
 
 
 ### Create generic enrichment map file from ROAST[@roast] results
-9. Inspect the results returned from ROAST[@roast]. The column "Direction" shows whether the gene set is enriched for up-regulated genes or down-regulated genes. To ensure compatibility with Enrichment Map, convert these values such that 1 represents up-regulated -1 represents down-regulated genes.
+In order to create an enrichment map from the results of the ROAST analysis we need to create a file that can be uploaded into the EnrichmentMap and translated into a network.  EnrichmentMap requires a file that contains the pathway name, description, p-value associated with the enrichment, corrected p-value associated with the enrichment, a phenotype and a list of genes associated with the given pathway.  The list of genes is optional bu in the absence of a list of genes a gmt file must be provided.  If any of the required columns are missig from your analysis you can supply fake values in order to build an enrichment map. 
+
+9. Inspect the results returned from ROAST[@roast]. The column "Direction" shows whether the gene set is enriched for up-regulated genes or down-regulated genes. To ensure compatibility with EnrichmentMap, convert these values such that 1 represents up-regulated -1 represents down-regulated genes.
 ```{r}
 mroast_results_file <- "mroast_results_generic_em.txt"
 
@@ -283,7 +285,7 @@ rownames(genes) <- rownames(mroast_results)
 
 mroast_results_generic_em <- data.frame( rownames(mroast_results), mroast_descr, 
 	PValue=mroast_results[,"PValue"], FDR=mroast_results[,"FDR"], Phenotype, genes)
-write.table(mroast_results_generic_em, paste(working_dir,mroast_results_file,sep="/"), 
+write.table(mroast_results_generic_em, file.path(working_dir,mroast_results_file), 
 	col.name=TRUE, sep="\t", row.names=FALSE, quote=FALSE) 
 
 ```
@@ -331,7 +333,7 @@ rownames(camera_genes) <- rownames(camera_results)
 
 camera_results_generic_em <- data.frame(rownames(camera_results), camera_descr, 
 	PValue = camera_results[,"PValue"], FDR=camera_results[,"FDR"], Phenotype, genes )
-write.table(camera_results_generic_em, paste(working_dir,camera_results_file,sep="/"), 
+write.table(camera_results_generic_em, file.path(working_dir,camera_results_file), 
 	col.name=TRUE, sep="\t", row.names=FALSE, quote=FALSE)
 ```
 
@@ -341,6 +343,8 @@ The results from Camera[@camera] or ROAST[@roast] can be input to Enrichment Map
 
 ### (Optional) Create an Enrichment map directly from R
 Optional: Build Enrichment map from the above results
+
+Instead of creating an enrichment map through the Cytoscape user interface it is also possible to create it directly from R using cyrest commands.  Below is an example of how to create an enrichment map directly from R using the Camera[@camera] and ROAST[@roast] results that have been created in this protocol.
 
 Make sure that you have launch Cytoscape and installed all required apps as listed in the main Protocol (Step 1 - 4)
 
@@ -358,10 +362,10 @@ qvalue_threshold <- "0.001"
 similarity_threshold <- "0.25"
 similarity_metric = "JACCARD"
 
-generic_gmt_file <- paste(getwd(),gmt_file,sep="/")
+generic_gmt_file <- file.path(getwd(),gmt_file)
 
 cur_model_name <- paste("camera",analysis_name,sep="_")
-results_filename <- paste(getwd(),working_dir,camera_results_file,sep="/")
+results_filename <- file.path(getwd(),working_dir,camera_results_file)
 
 #######################################
 #create EM - camera results
@@ -375,8 +379,8 @@ em_command = paste('enrichmentmap build analysisType="generic"',
                    'similaritycutoff=',similarity_threshold,
                    'coefficients=',similarity_metric,
                    'enrichmentsDataset1=',results_filename,
-                   'expressionDataset1=',paste(getwd(),working_dir,
-                                               expression_file,sep="/"),
+                   'expressionDataset1=',file.path(getwd(),working_dir,
+                                               expression_file),
                    sep=" ")
 
 #enrichment map command will return the suid of newly created network.
@@ -417,7 +421,7 @@ Build a network with the ROAST[@roast] results
 ```{r}
 
 cur_model_name <- paste("roast",analysis_name,sep="_")
-results_filename <- paste(getwd(),working_dir,mroast_results_file,sep="/")
+results_filename <- file.path(getwd(),working_dir,mroast_results_file)
 
 #######################################
 #create EM -roast results
@@ -431,8 +435,8 @@ em_command = paste('enrichmentmap build analysisType="generic"',
                    'similaritycutoff=',similarity_threshold,
                    'coefficients=',similarity_metric,
                    'enrichmentsDataset1=',results_filename,
-                   'expressionDataset1=',paste(getwd(),working_dir,
-                                               expression_file,sep="/"),
+                   'expressionDataset1=',file.path(getwd(),working_dir,
+                                               expression_file),
                    sep=" ")
 
 #enrichment map command will return the suid of newly created network.
@@ -454,7 +458,7 @@ response <- renameNetwork(current_network_name, network = as.numeric(current_net
 ```
 
 
-```{r, eval = add_setup,echo=FALSE, warning=FALSE}
+```{r, eval = FALSE,echo=FALSE, warning=FALSE}
 library(knitr)
 asis_output("## References\\n") # Header that is only shown if add_setup == TRUE
 ```

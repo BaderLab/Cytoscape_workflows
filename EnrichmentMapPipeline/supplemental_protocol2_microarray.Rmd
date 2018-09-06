@@ -39,7 +39,7 @@ if(check(add_setup) == 0){
 ```
 
 
-```{r autodoc, child='supplementary_protocols123_setup.Rmd', eval=add_setup, echo=add_setup}
+```{r autodoc, child='supplementary_protocols123_setup.Rmd', eval=FALSE, echo=FALSE}
 ``` 
 
 ## Process Microarray data
@@ -72,7 +72,7 @@ working_dir <- "./data"
 
 ```{r}
 expressionMatrix <- as.matrix(read.table(
-  paste(working_dir, "Supplementary_Table10_TCGA_Microarray_rmanormalized.txt",sep="/"), 
+  file.path(working_dir, "Supplementary_Table10_TCGA_Microarray_rmanormalized.txt"), 
   header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE))
 
 ```
@@ -81,7 +81,7 @@ expressionMatrix <- as.matrix(read.table(
 3. Load subtype classification of samples. To calculate differential expression, we need to define at least 2 classes of samples. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into Mesenchymal and Immunoreactive classes (Supplementary Table 3, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal. 
 ```{r}
 classDefinitions <- read.table( 
-  paste(working_dir,"Supplementary_Table11_Microarray_classdefinitions.txt",sep="/"), 
+  file.path(working_dir,"Supplementary_Table11_Microarray_classdefinitions.txt"), 
   header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
 identical(colnames(expressionMatrix), classDefinitions$patient)
 
@@ -136,6 +136,12 @@ fit2 <- eBayes(fit1)
 ```{r}
 topfit <- topTable(fit2, coef="immunovsrest",number=nrow(expressionMatrix), adjust="BH")
 ```
+
+Top of resulting table:
+```{r}
+head(topfit)
+```
+
 
 ### Create g:Profiler input list
 11a. Create the gene list for use in g:Profiler or another thresholded enrichment tool. The list may comprise all genes that have a significant FDR-corrected p-value, all up-regulated genes with a significant FDR p-value, all down-regulated genes with a significant FDR p-value, or some other combination of thresholds.
@@ -204,7 +210,7 @@ write.table(EM_expressionFile, "TCGA_OV_expression.txt",
 
 ```
 
-```{r, eval = add_setup,echo=FALSE, warning=FALSE}
+```{r, eval = FALSE,echo=FALSE, warning=FALSE}
 library(knitr)
 asis_output("## References\\n") # Header that is only shown if add_setup == TRUE
 ```
