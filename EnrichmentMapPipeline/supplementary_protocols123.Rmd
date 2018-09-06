@@ -45,5 +45,7 @@ add_setup = FALSE
 ```{r autodoc, child='supplemental_protocol3_R_gse_methods.Rmd', eval=TRUE, echo=TRUE}
 ``` 
 
+```{r autodoc, child='Supplemental_protocol_4_manual_phenotype_rand_with_edgeR.Rmd', eval=TRUE, echo=TRUE}
+``` 
 
 ## References

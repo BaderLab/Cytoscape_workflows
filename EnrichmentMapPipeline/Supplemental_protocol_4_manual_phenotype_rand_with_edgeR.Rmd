@@ -601,4 +601,7 @@ exportImage(output_network_file, type = "png")
 knitr::include_graphics(file.path(getwd(),"manual_phenotype_randomization_forpdf.png"))
 ```
 
-
+```{r, eval = TRUE,echo=FALSE, warning=FALSE}
+library(knitr)
+asis_output("## References\\n") # Header that is only shown if add_setup == TRUE
+```
