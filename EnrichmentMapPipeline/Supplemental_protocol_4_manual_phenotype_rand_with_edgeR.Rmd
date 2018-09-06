@@ -30,11 +30,11 @@ csl: nature-protocols.csl
 ---
 # Supplementary Protocol 4 – perform phenotype randomizations using edgeR with GSEA
 
-One of the main criticisms we get when using GSEA is that we use the gene set permutation as opposed to the phenotype permutation.  In the GSEA interface if you use phenotype permutation you are required to upload your original expression data and use one of the predefined statistical tests in order to test for differential expression. The tests are limited to basic statistical measures (signal to noise, ratio, difference...).  When using RNA-seq data or any  omics data often there are specialized statistical methods developed to account for intricacies of the data.  For RNA-seq the most common scoring methods used are DESeq and EdgeR.  
+One of the main criticisms we get when using GSEA is that we use the gene set permutation as opposed to the phenotype permutation.  In the GSEA interface if you use phenotype permutation you are required to upload your original expression data and use one of the predefined statistical tests in order to test for differential expression. The tests are limited to basic statistical measures (signal to noise, ratio, difference...).  When using RNA-seq data or any omics data often there are specialized statistical methods developed to account for intricacies of the data.  For RNA-seq the most common scoring methods used are DESeq and EdgeR and these are not implemented in GSEA, so using them requires programming to implement the phenotype permutation feature outside of GSEA.  
 
 In the current notebook we demonstrate how to perform phenotype randomization using EdgeR with GSEA. 
 
-DISCLAIMER: Performing this randomization with R is very resource intensive and time consuming.  (On a intel i7 computer with 16GB 1000 permutations took more than 12.5 hours)
+**NOTE: Performing this randomization with R is very resource intensive and time consuming.  (On a intel i7 computer with 16GB 1000 permutations took more than 12.5 hours)**
 
 
 ## Process RNA-seq data
@@ -233,10 +233,10 @@ Do the following steps:
 
  * Shuffle the class labels using the R sample function.  (Even though that data consists of 4 classes we do not limit the shuffling to just the two classes being compared)
  * Normalize shuffled data
- * calculate dispersion of shuffled data
- * exclude genes with LOC names
- * calculated differential expression using EdgeR
- * run GSEA preranked using resulting ranks (*Needed to specify 1 permutation as if you set permutation to 0 GSEA will not calculate the NES or FDR value.  We are not interested in the FDR value but we do need the NES value.*)
+ * Calculate dispersion of shuffled data
+ * Exclude genes with LOC names
+ * Calculated differential expression using EdgeR
+ * Run GSEA preranked using resulting ranks (*Needed to specify 1 permutation as if you set permutation to 0 GSEA will not calculate the NES or FDR value.  We are not interested in the FDR value but we do need the NES value.*)
  * Repeat for X randomizations.
  
  *X = 1000 for this analysis
@@ -328,9 +328,9 @@ if(run_gsea){
 ### Calculate FDR
 10. In order to calculate the FDR load in the GSEA results from each of the randomizations.  For each geneset collect its es and nes values.  To calculate the FDR for each geneset:
 
- * For given geneset get all random es and nes values.
- * If given geneset has a negative es value, count the number of random es values are less than it.  Divide count by number of randomizations to get the FDR.
- * If given geneset has a positive es value, count the number of random es values are greater than it.  Divide count by number of randomizations to get the FDR.
+ * For given gene set get all random ES and NES values.
+ * If given gene set has a negative ES value, count the number of random ES values are less than it.  Divide count by number of randomizations to get the FDR.
+ * If given geneset has a positive ES value, count the number of random ES values are greater than it.  Divide count by number of randomizations to get the FDR.
  
   a. Load in Randomization results
 ```{r}
@@ -384,6 +384,8 @@ actual_gsea_results <- c()
          
 }
 
+#replace all the zero fdr values with a more precise measurement
+actual_gsea_results$FDR.q.val[which(actual_gsea_results$FDR.q.val == 0)] <- 1/1001
 ```
 
   c. Calculate the FDR values using our manual permutation method
@@ -454,13 +456,13 @@ plot(num_randomizations,saturation_curve, xlab="number of randomizations",
 Plot the comparison of the FDR values using gsrand vs phenotype randomization from R using EdgeR
 ```{r}
 plot(cbind(gsrand_gsea_results$FDR.q.val, new_fdr), ylab="edgeR randomization FDR", 
-     xlab="gs randomications FDR", main="GSEA gs rand FDR vs EdgeR manual rand FDR")
+     xlab="gs randomizations FDR", main="GSEA gs rand FDR vs EdgeR manual rand FDR")
 ```
 
 Plot the comparison of the FDR values using gsrand vs phenotype randomization from R using EdgeR - log transform the p-values to better see the differences.
 ```{r}
 plot(cbind(-log10(gsrand_gsea_results$FDR.q.val), -log10(new_fdr)), ylab="-log10 edgeR randomization FDR", 
-     xlab="-log10 gs randomications FDR", 
+     xlab="-log10 gs randomizations FDR", 
      main="-log10 transformed - GSEA gs rand FDR vs \nEdgeR manual rand FDR")
 ```
 
@@ -472,7 +474,7 @@ temp<- cbind(gsrand_gsea_results$FDR.q.val, new_fdr)
 temp <- temp[which(temp[,1]<0.01 | temp[,2]<0.01),]
 
 plot(-log10(temp[,1]), -log10(temp[,2]), ylab="-log10 edgeR randomization FDR", 
-     xlab="-log10 gs randomications FDR",
+     xlab="-log10 gs randomizations FDR",
 main=paste("-log10 transformed GSEA gs rand vs EdgeR manual rand" ,
            "- \nsignificant in at least one analysis", sep=""))
 ```
@@ -493,16 +495,16 @@ results <- draw.pairwise.venn(area1 = length(a),
 dev.off()
 ```
 
-```{r venndiagram, echo=FALSE, fig.cap="Overlap of two different methods (FDR threshold<0.01) - comparing the significant genesets returned by each method (gsrand and EdgeR rand)"}
+```{r venndiagram, echo=FALSE, fig.cap="Overlap of two different methods(gsrand and edgeR_rand)  - comparing the significant (FDR threshold<0.01) genesets returned by gene set randomization and EdgeR manual randomization."}
 knitr::include_graphics(two_method_overlap)
 ```
 
 ## Launch Cytoscape
-Create EM through Cyrest interface - make sure you open cytoscape with a -R 1234 (to enable rest functionality) and allow R to talk directly to cytoscape.
+Create EM through CyREST interface - make sure you open Cytoscape with a -R 1234 (to enable rest functionality) and allow R to talk directly to Cytoscape.
 
-Launch Cytoscape (by default cytoscape will automatically enable rest so as long as cytoscape 3.3 or higher is open R should be able to communicate with it)  
+Launch Cytoscape (by default Cytoscape will automatically enable rest so as long as cytoscape 3.3 or higher is open R should be able to communicate with it)  
 
-## Set up connection from R to cytoscape 
+## Set up connection from R to Cytoscape 
 ```{r initialize cytoscape connection}
 
 #use easy cyRest library to communicate with cytoscape.
