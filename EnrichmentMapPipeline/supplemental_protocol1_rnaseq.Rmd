@@ -312,14 +312,14 @@ write.table(EM_expressionFile_RNAseq,
 ```{r}
 #write out a GSEA classes file. (optional)
 fileConn <- file(
-  file.path(working_dir,"Supplementary_Table9_TCGA_OV_RNAseq_classes.cls"))
+  file.path(working_dir,"Supplementary_Table7_TCGA_OV_RNAseq_classes.cls"))
 writeLines(c(paste(length(classDefinitions_RNASeq[,data_classes]), "4 1"), 
              paste("# ", unique(classDefinitions_RNASeq[,data_classes])[1], " ",
                    unique(classDefinitions_RNASeq[,data_classes])[2], " ",
                    unique(classDefinitions_RNASeq[,data_classes])[3], " ",
                    unique(classDefinitions_RNASeq[,data_classes])[4])), fileConn)
 write.table(t(classDefinitions_RNASeq[,data_classes]), 
-            file.path(working_dir,"Supplementary_Table9_TCGA_OV_RNAseq_classes.cls"), 
+            file.path(working_dir,"Supplementary_Table7_TCGA_OV_RNAseq_classes.cls"), 
             col.name=FALSE, sep="\t",
             row.names=FALSE, quote=FALSE, append=TRUE)
 close(fileConn)
@@ -339,7 +339,7 @@ tryCatch(expr = { library("RColorBrewer")},
          finally = library("RColorBrewer"))
 
 annotation_col <- data.frame(SUBTYPE=factor(classDefinitions_RNASeq[,data_classes]))
-rownames(annotation_col) <- classDefinitions_RNASeq[,2]
+rownames(annotation_col) <- substr(classDefinitions_RNASeq[,2],1,12)
 
 ann_colors = list(SUBTYPE = c(Immunoreactive="blue", Mesenchymal="red",
                               Proliferative = "orange",Differentiated="darkgreen"))
@@ -357,6 +357,7 @@ matrix_for_heatmap[matrix_for_heatmap == 0] <- 0.0000001
 
 
 ```
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 heatmap_filename <- file.path(working_dir, "heatmap_allsamples.png")
 png(filename = heatmap_filename)

@@ -1,5 +1,5 @@
 ---
-title: "Supplementary Protocol 4 – perform phenotype randomizations using edgeR with GSEA"
+title: "Supplementary Protocol 4 – perform manual phenotype randomizations using edgeR followed by GSEA and EM"
 author: "Ruth Isserlin"
 date: "`r format(Sys.Date())`"
 output:
@@ -28,17 +28,23 @@ output:
 bibliography: sup_protocol1_references.bib
 csl: nature-protocols.csl
 ---
-# Supplementary Protocol 4 – perform phenotype randomizations using edgeR with GSEA
+# Supplementary Protocol 4 – pperform manual phenotype randomizations using edgeR followed by GSEA and EM
 
-One of the main criticisms we get when using GSEA is that we use the gene set permutation as opposed to the phenotype permutation.  In the GSEA interface if you use phenotype permutation you are required to upload your original expression data and use one of the predefined statistical tests in order to test for differential expression. The tests are limited to basic statistical measures (signal to noise, ratio, difference...).  When using RNA-seq data or any omics data often there are specialized statistical methods developed to account for intricacies of the data.  For RNA-seq the most common scoring methods used are DESeq and EdgeR and these are not implemented in GSEA, so using them requires programming to implement the phenotype permutation feature outside of GSEA.  
+This protocol demonstrates how to code manual phenotype permutation for RNA-seq data analyzed with edgeR and GSEA.
 
-In the current notebook we demonstrate how to perform phenotype randomization using EdgeR with GSEA. 
+GSEA calculates for each tested gene-set an enrichment score (ES) which quantifies the enrichment of the gene set. A pvalue is needed to estimate if this enrichment (ES) is greater than one that could be obtained by chance only. There are two ways to estimate the pvalue and FDR within GSEA: gene-set permutation and phenotype permutation. 
+
+First, available as gene set permutation in GSEA,a null distribution can be constructed by randomly shuffling the genes in a given gene-sets: each time a shuffled gene-set is tested an ES is calculated. Then the observed ES for an individual gene set is compared to all the ES scores obtained for the same gene set across all the permutations to obtain an estimate of the gene set permutation FDR value.  
+
+An alternate way, available as phenotype permutation in GSEA, is to shuffle the sample labels that constitute the 2 groups to be compared. After shuffling the sample labels differential expression is recalculated. With a random shuffle of the samples not many genes should be found significantly differentially expressed and as a result not many pathways should be found significantly enriched. For each tested gene set, the observed ES is compared to all ES obtained with the shuffled samples and an FDR is estimated. 
+
+Note about phenotype permutation: In the GSEA interface, there is one option to upload an entire expression matrix and a class definition file (.cls) and perform the phenotype permutation. However the choice of tests are limited to basic statistical measures (signal to noise, t-test) and tests using non negative binomial distribution or linear models such as the ones implemented in edgeR and DEseq and recommended for RNA-seq counts data are not available. Therefore,  in this protocol, we are performing the permutations outside GSEA. Differential expression is calculated within edgeR between the ‘immunoreactive’ and ‘mesenchymal’ type and GSEA is run to get the observed ES. Then, 1000 permutations are computed by shuffling the samples. Each permutation run consists of :1) shuffling the samples which results in the formation of 2 random groups. 2) calculate differential expression within edgeR between these 2 groups 3) run GSEA and obtain the ES and NES for this random permutation.  Finally, for each gene-set, the pvalue is calculated by counting the number of times the observed ES was greater than the ES obtained from the random permutations. 
 
 **NOTE: Performing this randomization with R is very resource intensive and time consuming.  (On a intel i7 computer with 16GB 1000 permutations took more than 12.5 hours)**
 
 
 ## Process RNA-seq data
-This part of the supplementary protocol demonstrates filtering and scoring RNA-seq data using normalized RNA-seq count data with the EdgeR R package. The protocol can be used to produce input data for pathway enrichment methods like g:Profiler, GSEA and others. This RNA-seq analysis protocol follows conceptually similar steps to microarray analysis shown above. 
+This part of the supplementary protocol demonstrates filtering and scoring RNA-seq data using normalized RNA-seq count data with the edgeR R package. The section prepares the input data for GSEA. 
 
 ### Load required packages
 1. Load required Bioconductor packages into R. 
@@ -51,7 +57,8 @@ tryCatch(expr = { library("edgeR")},
            biocLite("edgeR")}, 
          finally = library("edgeR"))
 
-working_dir <- file.path(getwd(),"data")
+working_dir <- file.path(".","data")
+rand_working_dir <- file.path(".","data", "Randomizations_round2")
 
 #The field in the class definition file that defines the classes of the data.
 data_classes <- "SUBTYPE"
@@ -79,7 +86,7 @@ classDefinitions_RNASeq <- read.table(
 ```
 
 ### Filter Data
-4. Filter RNA-seq reads. RNA-seq data are processed following the EdgeR protocol15 that filters reads based on the counts per million (CPM) statistic. RNA-seq read counts are converted to CPM values and genes with CPM > 1 in at least 50 of the samples are retained for further study (a gene mush have at least 50 measurements with more than 1 CPM in one of the classes to be included in the analysis). This step removes genes with very low read counts that are likely not expressed in the majority of samples and cause noise in the data. Note, CPM filtering is used to remove low counts while differential gene expression analysis is based on normalized read counts which are generated below (step 6). 
+4. Filter RNA-seq reads. RNA-seq data are processed following the edgeR protocol that filters reads based on the counts per million (CPM) statistic. RNA-seq read counts are converted to CPM values and genes with CPM > 1 in at least 50 of the samples are retained for further study (a gene must have at least 50 measurements with more than 1 CPM in one of the classes to be included in the analysis). This step removes genes with very low read counts that are likely not expressed in the majority of samples and cause noise in the data. Note, CPM filtering is used to remove low counts while differential gene expression analysis is based on normalized read counts which are generated below (step 6). 
 
 ```{r}
 cpms <- cpm(RNASeq)
@@ -137,7 +144,7 @@ d <- d[which(!rownames(d) %in% exclude),]
 ```
 
 ### Calculate Differential expression
-7. Differential expression analysis is performed with a simple design as described in the EdgeR protocol[@edgeR].
+7. Differential expression analysis is performed with a simple design as described in the edgeR protocol[@edgeR].
 ```{r}
 #calculate differential expression statistics with a simple design
 de <- exactTest(d, pair=c("Immunoreactive","Mesenchymal"))
@@ -191,7 +198,7 @@ gsea_jar <- "./gsea-3.0.jar"
 #Gsea takes a long time to run.  If you have already run GSEA manually or previously 
 # there is no need to re-run GSEA.  Make sure the gsea results are in the current 
 # directory and the notebook will be able to find them and use them.
-run_gsea = TRUE
+run_gsea = FALSE
 
 # leave blank if you want the notebook to discover the gsea directory for itself
 #gsea_directory = paste(working_dir,"Mesen_vs_Immuno.GseaPreranked.1497635459262",sep="/") 
@@ -201,19 +208,22 @@ gsea_directory = ""
 dest_gmt_file <- file.path(working_dir,
           "Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_July_01_2017_symbol.gmt" )
 
+num_randomizations <- 1000
+
 ```
 
 
-8. Run GSEA with geneset randomization
+8. Run GSEA with gene set randomization
 
-Even though we are going to perform our own randomizations we still need to run GSEA to get the nominal p-values, ES and NES values for the original ranked list.
+Even though we are going to perform our own randomization, we still need to run GSEA to get the observed ES. In addition we will use the FDR from this gene randomization run to compare with our manual phenotype permutations.
 ```{r}
 timestamp()
 start_gs_perm <- Sys.time()
 if(run_gsea){
   command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", 
       dest_gmt_file, "-rnk" ,rnk_file, 
-      "-collapse false -nperm 1000 -permute gene_set -scoring_scheme weighted -rpt_label ",
+      "-collapse false -nperm ",num_randomizations, 
+      " -permute gene_set -scoring_scheme weighted -rpt_label ",
       paste(analysis_name,"gsrand",sep="_"),
 " -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,
       rand_working_dir, "-gui false > gsea_output.txt",sep=" ")
@@ -226,7 +236,7 @@ difftime(stop_gs_perm,start_gs_perm,"mins")
 
 
 
-### Manual Randomizations
+### Manual Phenotype Randomizations
 9. Instead of randomizing in GSEA create our own phenotype randomization in R.  
 
 Do the following steps:
@@ -235,11 +245,11 @@ Do the following steps:
  * Normalize shuffled data
  * Calculate dispersion of shuffled data
  * Exclude genes with LOC names
- * Calculated differential expression using EdgeR
+ * Calculated differential expression using edgeR
  * Run GSEA preranked using resulting ranks (*Needed to specify 1 permutation as if you set permutation to 0 GSEA will not calculate the NES or FDR value.  We are not interested in the FDR value but we do need the NES value.*)
  * Repeat for X randomizations.
  
- *X = 1000 for this analysis
+ *X = `r num_randomizations` for this analysis
 
 ```{r}
 timestamp()
@@ -253,7 +263,7 @@ if(run_gsea){
     registerDoParallel(cl, cores = detectCores() - 1)
     
       
-      data = foreach(i = 1:1000, .packages = c("edgeR"),
+      data = foreach(i = 1:num_randomizations, .packages = c("edgeR"),
                    .combine = rbind) %dopar% {
                      try({
         rand_analysis_name <- paste("Rand",i,sep="_")
@@ -271,7 +281,7 @@ if(run_gsea){
         d <- estimateTagwiseDisp(d)
         
         #the below regular expression excludes gene names that are ? or that start with
-        # LOC any number ofadditional terms can be added to the regular expresion, for  
+        # LOC any number of additional terms can be added to the regular expresion, for  
         # example to exclude any genes that start with "His" add |^His to the 
         # regular expression
         exclude <- grep("\\?|^LOC", rownames(d), value=T)
@@ -304,7 +314,7 @@ if(run_gsea){
                     col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
         
         #need to set permutation number to 1 in order for the NES to be calculated.  
-        # If you set it to zero the the results have no p-value, fdr or NES values. 
+        # If you set it to zero the results have no p-value, fdr or NES values. 
          command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", 
                           dest_gmt_file, "-rnk" ,rank_filename, 
                           "-collapse false -nperm 1 -permute gene_set",
@@ -326,11 +336,11 @@ if(run_gsea){
 
 
 ### Calculate FDR
-10. In order to calculate the FDR load in the GSEA results from each of the randomizations.  For each geneset collect its es and nes values.  To calculate the FDR for each geneset:
+10. In order to calculate the FDR load in the GSEA results from each of the randomizations.  For each gene set collect its es and nes values.  To calculate the FDR for each gene set:
 
  * For given gene set get all random ES and NES values.
  * If given gene set has a negative ES value, count the number of random ES values are less than it.  Divide count by number of randomizations to get the FDR.
- * If given geneset has a positive ES value, count the number of random ES values are greater than it.  Divide count by number of randomizations to get the FDR.
+ * If given gene set has a positive ES value, count the number of random ES values are greater than it.  Divide count by number of randomizations to get the FDR.
  
   a. Load in Randomization results
 ```{r}
@@ -347,7 +357,7 @@ for(i in 1:length(rand_directories)){
     #load the positive files
     for(j in 1:length(current_rand_files)){
           rand_results <- read.table(  file.path(rand_working_dir,rand_directories[i],
-                                                 current_rand_files[j]),  header = TRUE, 
+                                    current_rand_files[j]),  header = TRUE, 
                                        sep = "\t", quote="\"", stringsAsFactors = FALSE)
 
           es_values <- data.frame(rand_results$NAME, rand_results$ES)
@@ -369,7 +379,8 @@ for(i in 1:length(rand_directories)){
 
   b. Load in the real rankings
 ```{r}
- gsea_directory <- list.files(path = rand_working_dir, pattern = "Mesen_vs_Immuno_gsrand")
+ gsea_directory <- list.files(path = rand_working_dir, 
+                              pattern = paste(analysis_name,"gsrand",sep="_"))
 gsea_results_files <- list.files(path = file.path(rand_working_dir,
                                       gsea_directory), pattern = "gsea_report_for_na_")
 gsea_results_files<- gsea_results_files[grep(gsea_results_files, pattern="\\.xls")]
@@ -386,24 +397,27 @@ actual_gsea_results <- c()
 
 #replace all the zero fdr values with a more precise measurement
 actual_gsea_results$FDR.q.val[which(actual_gsea_results$FDR.q.val == 0)] <- 1/1001
+gsrand_gsea_results <- actual_gsea_results
 ```
 
-  c. Calculate the FDR values using our manual permutation method
+  c. Calculate the nominal p-value using the phenotype permutation results
 ```{r}
 #calculate the new fdr values
 new_fdr <- c()
+nominal_pvalues <- c()
 for(m in 1:dim(actual_gsea_results)[1]){
   current_data <- as.numeric(all_rand_es[which(all_rand_es$rand_results.NAME == 
-                                                 actual_gsea_results$NAME[m]),2:2001])
+                                actual_gsea_results$NAME[m]),2:ncol(all_rand_es)])
   if(actual_gsea_results$ES[m] < 0 ){
-    new_fdr <- c(new_fdr, 
-                 (length( which(current_data < actual_gsea_results$ES[m]))+1)/(1000 + 1))                           
+    nominal_pvalues <- c(nominal_pvalues, 
+    (length( which(current_data < actual_gsea_results$ES[m]))+1)/(num_randomizations + 1))                           
   } else {
-    new_fdr <- c(new_fdr, 
-                 (length( which(current_data > actual_gsea_results$ES[m]))+1)/(1000 + 1))  
+    nominal_pvalues <- c(nominal_pvalues, 
+    (length( which(current_data > actual_gsea_results$ES[m]))+1)/(num_randomizations + 1))  
   }
 }
 
+new_fdr <- p.adjust(nominal_pvalues, method = "BH")
 ```
 
   d. Create a new results file containing our computed FDR values
@@ -425,60 +439,99 @@ write.table(new_fdr_gsea_results_files[,1:11] ,enrichment_results_filename ,
 ```{r message=FALSE, warning=FALSE}
 
 saturation_curve <- c()
-num_randomizations <- c(100,200,300,400,500,600,700,800,900,1000)
+series_of_randomizations <- c(100,200,300,400,500,600,700,800,900,1000)
 fdr_thresh <- 0.01
 
-for(l in 1:length(num_randomizations)){
-    saturation_fdr <- c()
-    for(m in 1:dim(actual_gsea_results)[1]){
-      current_data <- as.numeric(all_rand_es[which(all_rand_es$rand_results.NAME == 
-                actual_gsea_results$NAME[m]),2:(num_randomizations[l] *2 + 1)])
-      if(actual_gsea_results$ES[m] < 0 ){
-        saturation_fdr <- c(saturation_fdr, (length( which(current_data < 
-                actual_gsea_results$ES[m]))+1)/(num_randomizations[l] + 1))                           
-      } else {
-        saturation_fdr <- c(saturation_fdr, (length( which(current_data > 
-                actual_gsea_results$ES[m]))+1)/(num_randomizations[l] + 1))  
+if(num_randomizations >= 1000){
+  for(l in 1:length(series_of_randomizations)){
+      saturation_fdr <- c()
+      for(m in 1:dim(actual_gsea_results)[1]){
+        current_data <- as.numeric(all_rand_es[which(all_rand_es$rand_results.NAME == 
+                  actual_gsea_results$NAME[m]),
+                  2:(series_of_randomizations[l] *2 + 1)])
+        if(actual_gsea_results$ES[m] < 0 ){
+          saturation_fdr <- c(saturation_fdr, (length( which(current_data < 
+                  actual_gsea_results$ES[m]))+1)/
+                    (series_of_randomizations[l] + 1))                           
+        } else {
+          saturation_fdr <- c(saturation_fdr, (length( which(current_data > 
+                  actual_gsea_results$ES[m]))+1)/
+                    (series_of_randomizations[l] + 1))  
+        }
       }
-    }
-    
-    #get the number of genesets that are less than fdr value threshold
-    saturation_curve <- c(saturation_curve, length(which(saturation_fdr <= fdr_thresh)))
+      
+      #get the number of gene sets that are less than fdr value threshold
+      saturation_curve <- c(saturation_curve, length(which(saturation_fdr <= fdr_thresh)))
+  }
+  saturation_curve_filename = file.path(rand_working_dir,"saturation_curve.png")
+  png(saturation_curve_filename)
+  plot(series_of_randomizations,saturation_curve, 
+       xlab="number of randomizations", 
+       ylab = "Number of significant( FDR <0.01) gene sets", main = "FDR Saturation curve")
+  dev.off()
 }
-
-plot(num_randomizations,saturation_curve, xlab="number of randomizations", 
-     ylab = "Number of significant( FDR <0.01) genesets", main = "FDR Saturation curve")
 ```
 
 
-### Basic comparison of FDR values generated by GSEA geneset randomization and Manual phenotype randomization with edgeR
+```{r echo=FALSE, fig.cap="FDR Saturation curve - number of signifincant gene sets for the FDR threshold < 0.01 for different number of randomizations.",out.width="50%"}
+if(exists("saturation_curve_filename")){
+  knitr::include_graphics(saturation_curve_filename)
+}
+```
+### Basic comparison of FDR values generated by GSEA gene set randomization and manual phenotype randomization with edgeR
 
-Plot the comparison of the FDR values using gsrand vs phenotype randomization from R using EdgeR
+Plot the comparison of the FDR values using gsrand vs phenotype randomization from R using edgeR
 ```{r}
+fdr_comparison_filename = file.path(rand_working_dir,"fdr_comparison.png")
+png(fdr_comparison_filename)
 plot(cbind(gsrand_gsea_results$FDR.q.val, new_fdr), ylab="edgeR randomization FDR", 
-     xlab="gs randomizations FDR", main="GSEA gs rand FDR vs EdgeR manual rand FDR")
+     xlab="gs randomizations FDR", main="GSEA gs rand FDR vs edgeR manual rand FDR")
+dev.off()
 ```
 
-Plot the comparison of the FDR values using gsrand vs phenotype randomization from R using EdgeR - log transform the p-values to better see the differences.
+```{r echo=FALSE, fig.cap="Comparison of the FDR values using gsrand vs phenotype randomization.",out.width="50%"}
+if(exists("fdr_comparison_filename")){
+  knitr::include_graphics(fdr_comparison_filename)
+}
+```
+
+Plot the comparison of the FDR values using gsrand vs phenotype randomization from R using edgeR - log transform the p-values to better see the differences.
 ```{r}
+log_fdr_comparison_filename = file.path(rand_working_dir,"log_fdr_comparison.png")
+png(log_fdr_comparison_filename)
 plot(cbind(-log10(gsrand_gsea_results$FDR.q.val), -log10(new_fdr)), ylab="-log10 edgeR randomization FDR", 
      xlab="-log10 gs randomizations FDR", 
-     main="-log10 transformed - GSEA gs rand FDR vs \nEdgeR manual rand FDR")
+     main="-log10 transformed - GSEA gs rand FDR vs \nedgeR manual rand FDR")
+dev.off()
 ```
 
+```{r echo=FALSE, fig.cap="Comparison of the FDR values using gsrand vs phenotype randomization (-log10 FDR).",out.width="50%"}
+if(exists("log_fdr_comparison_filename")){
+  knitr::include_graphics(log_fdr_comparison_filename)
+}
+```
 
-Create a subset of the above plot to include any genesets where the FDR is significant in at least one of the analyses
+Create a subset of the above plot to include any gene sets where the FDR is significant in at least one of the analyses
 
 ```{r}
 temp<- cbind(gsrand_gsea_results$FDR.q.val, new_fdr)
 temp <- temp[which(temp[,1]<0.01 | temp[,2]<0.01),]
 
+top_fdr_comparison_filename = file.path(rand_working_dir,"top_fdr_comparison.png")
+png(top_fdr_comparison_filename)
 plot(-log10(temp[,1]), -log10(temp[,2]), ylab="-log10 edgeR randomization FDR", 
      xlab="-log10 gs randomizations FDR",
-main=paste("-log10 transformed GSEA gs rand vs EdgeR manual rand" ,
+main=paste("-log10 transformed GSEA gs rand vs edgeR manual rand" ,
            "- \nsignificant in at least one analysis", sep=""))
+dev.off()
 ```
 
+
+```{r echo=FALSE, fig.cap="Comparison of the FDR values using gsrand vs phenotype randomization for just genesets that are significant in at least one analysis (-log10 FDR).",out.width="50%"}
+if(exists("top_fdr_comparison_filename")){
+  knitr::include_graphics(top_fdr_comparison_filename)
+}
+```
 
 Venn Diagram of overlaps
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
@@ -495,9 +548,13 @@ results <- draw.pairwise.venn(area1 = length(a),
 dev.off()
 ```
 
-```{r venndiagram, echo=FALSE, fig.cap="Overlap of two different methods(gsrand and edgeR_rand)  - comparing the significant (FDR threshold<0.01) genesets returned by gene set randomization and EdgeR manual randomization."}
-knitr::include_graphics(two_method_overlap)
+```{r echo=FALSE,out.width="50%"}
+if(exists("two_method_overlap")){
+  knitr::include_graphics(two_method_overlap)
+}
 ```
+
+Figure: Overlap of gsrand and edgeR_rand - compare the number of significant (FDR < 0.01) gene sets from the two methods, GSEA gs randomization and edgeR manual randomization
 
 ## Launch Cytoscape
 Create EM through CyREST interface - make sure you open Cytoscape with a -R 1234 (to enable rest functionality) and allow R to talk directly to Cytoscape.
@@ -527,7 +584,7 @@ if(!cytoscape.open){
 
 ```
 
-## Create an Enrichment map
+## Create an enrichment map
 ```{r create enrichment map}
 
 #defined threshold for GSEA enrichments (need to be strings for cyrest call)
@@ -545,10 +602,10 @@ cur_model_name <- paste(analysis_name, "edgeR_rand",sep="_")
 #will get different pathway connectivity depending on the dataset being used.  We recommend 
 #using original gmt file used for the gsea analysis and not the filtered 
 # one in the results directory.
-gmt_gsea_file <- dest_gmt_file
+gmt_gsea_file <- file.path(getwd(),dest_gmt_file)
 gsea_ranks_file <- file.path(getwd(),rnk_file)
-gsea_results_filename <- enrichment_results_filename 
-gsea_expression_filename <- file.path(working_dir, 
+gsea_results_filename <- file.path(getwd(),enrichment_results_filename) 
+gsea_expression_filename <- file.path(getwd(),working_dir, 
                                       "Supplementary_Table6_TCGA_OV_RNAseq_expression.txt")
 
 #######################################
@@ -570,7 +627,7 @@ em_command = paste('enrichmentmap build analysisType="gsea" gmtFile=',gmt_gsea_f
 response <- commandsGET(em_command)
 
 current_network_suid <- 0
-#enrichment map command will return the suid of newly created network unless it Failed.  
+#enrichment map command will return the suid of newly created network unless it failed.  
 #If it failed it will contain the word failed
 if(grepl(pattern="Failed", response)){
   paste(response)
@@ -578,15 +635,15 @@ if(grepl(pattern="Failed", response)){
   current_network_suid <- response
 }
 response <- renameNetwork(title=current_network_name, 
-                          network = as.numeric(current_network_suid),base.url)
+                          network = as.numeric(current_network_suid))
 
 
 ```
 
 
 ## Get a screen shot of the initial network.
-```{r get screenshot, message=FALSE, warning=FALSE, include=FALSE}
-output_network_file <- file.path(getwd(),"manual_phenotype_randomization.png")
+```{r get screenshot, message=FALSE, warning=FALSE, include=TRUE}
+output_network_file <- file.path(getwd(),"manual_phenotype_randomization.pdf")
 
 if(file.exists(output_network_file)){
   #cytoscape hangs waiting for user response if file already exists.  Remove it first
@@ -594,16 +651,16 @@ if(file.exists(output_network_file)){
   } 
 
 #export the network
-exportImage(output_network_file, type = "png")
+exportImage(output_network_file, type = "pdf")
 
 ```
 
 
-```{r initialnetwork, echo=FALSE, fig.cap="Example enrichment map created from manual phenotype randomization in R using edgeR (FDR threshold<0.01"}
-knitr::include_graphics(file.path(getwd(),"manual_phenotype_randomization_forpdf.png"))
+```{r initialnetwork, echo=FALSE, fig.cap="Example enrichment map created from manual phenotype randomization in R using edgeR (FDR threshold<0.01)"}
+knitr::include_graphics(file.path(getwd(),"manual_phenotype_randomization_forpdf.pdf"))
 ```
 
-```{r, eval = TRUE,echo=FALSE, warning=FALSE}
+```{r, eval = FALSE,echo=FALSE, warning=FALSE}
 library(knitr)
 asis_output("## References\\n") # Header that is only shown if add_setup == TRUE
 ```
