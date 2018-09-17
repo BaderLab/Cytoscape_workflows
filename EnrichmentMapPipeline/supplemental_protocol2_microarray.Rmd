@@ -72,7 +72,7 @@ working_dir <- "./data"
 
 ```{r}
 expressionMatrix <- as.matrix(read.table(
-  file.path(working_dir, "Supplementary_Table10_TCGA_Microarray_rmanormalized.txt"), 
+  file.path(working_dir, "Supplementary_Table12_TCGA_Microarray_rmanormalized.txt"), 
   header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE))
 
 ```
@@ -81,7 +81,7 @@ expressionMatrix <- as.matrix(read.table(
 3. Load subtype classification of samples. To calculate differential expression, we need to define at least 2 classes of samples. A common experimental design involves cases and controls but any two classes can be used. The current dataset is divided into Mesenchymal and Immunoreactive classes (Supplementary Table 3, third column). After loading the matrix, check that the column names of the expression matrix and class definitions are equal. 
 ```{r}
 classDefinitions <- read.table( 
-  file.path(working_dir,"Supplementary_Table11_Microarray_classdefinitions.txt"), 
+  file.path(working_dir,"Supplementary_Table13_Microarray_classdefinitions.txt"), 
   header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
 identical(colnames(expressionMatrix), classDefinitions$patient)
 

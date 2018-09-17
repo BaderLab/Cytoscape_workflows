@@ -147,10 +147,10 @@ if(dataType_rnaseq){
                finally = library("edgeR"))
       
       RNAseq <- read.table( 
-        file.path(working_dir,"Supplementary_Table12_TCGA_RNASeq_rawcounts.txt"), 
+        file.path(working_dir,"Supplementary_Table10_TCGA_RNASeq_rawcounts.txt"), 
         header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
       classDefinitions_RNAseq <-read.table(
-        file.path(working_dir,"Supplementary_Table13_RNASeq_classdefinitions.txt"),
+        file.path(working_dir,"Supplementary_Table11_RNASeq_classdefinitions.txt"),
         header = TRUE,  sep = "\t", quote="\"", stringsAsFactors = FALSE)
       
       cpms <- cpm(RNAseq)
@@ -192,10 +192,10 @@ if(!dataType_rnaseq){
   
     #load in files
     expressionMatrix <- as.matrix(read.table(
-      file.path(working_dir, "Supplementary_Table1_TCGA_Microarray_rmanormalized.txt"), 
+      file.path(working_dir, "Supplementary_Table12_TCGA_Microarray_rmanormalized.txt"), 
       header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE))
     classDefinitions <- read.table( 
-      file.path(working_dir,"Supplementary_Table3_Microarray_classdefinitions.txt"), 
+      file.path(working_dir,"Supplementary_Table13_Microarray_classdefinitions.txt"), 
       header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
     identical(colnames(expressionMatrix), classDefinitions$patient)
     

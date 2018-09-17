@@ -39,9 +39,9 @@ Software requirements:
   * Required R packages: Biobase, limma and GSA are available from Bioconductor (https://www.bioconductor.org/)
 
 ### Data requirements:
-  * Supplementary_Table10_TCGA_Microarray_rmanormalized.txt corresponds to the RMA normalized Affymetrix mRNA transcript expression data from The Cancer Genome Atlas(TCGA) for serous ovarian cancer samples as downloaded from the GDC portal. Normalization is required to compute differential gene expression values across subtypes, as performed in Supplementary Protocol 1A.
-  * Supplementary_Table12_TCGA_RNASeq_rawcounts.txt corresponds to read counts per mRNA transcript determined using the RSEM method. These counts can be used to compare gene expression between subtypes using the edgeR analysis tool, as performed in Supplementary Protocol 1B. The counts are not pre-normalized and the normalization step using edgeR is part of the protocol.
-  * Supplementary_Table11_Microarray_classdefinitions.txt and Supplementary_Table13_RNASeq_classdefinitions.txt define the subtype classification of ovarian cancer samples (Immunoreactive, Mesenchymal, Differentiated, Proliferative) (Verhaak et al.[@OV] supplementary table 1, column 3). This information is used to extract two subgroups of interest, Mesenchymal and Immunoreactive.
+  * Supplementary_Table10_TCGA_RNASeq_rawcounts.txt corresponds to read counts per mRNA transcript determined using the RSEM method. These counts can be used to compare gene expression between subtypes using the edgeR analysis tool, as performed in Supplementary Protocol 1B. The counts are not pre-normalized and the normalization step using edgeR is part of the protocol.
+  * Supplementary_Table12_TCGA_Microarray_rmanormalized.txt corresponds to the RMA normalized Affymetrix mRNA transcript expression data from The Cancer Genome Atlas(TCGA) for serous ovarian cancer samples as downloaded from the GDC portal. Normalization is required to compute differential gene expression values across subtypes, as performed in Supplementary Protocol 1A.
+  * Supplementary_Table11_RNASeq_classdefinitions.txt and Supplementary_Table13_Microarray_classdefinitions.txt define the subtype classification of ovarian cancer samples (Immunoreactive, Mesenchymal, Differentiated, Proliferative) (Verhaak et al.[@OV] supplementary table 1, column 3). This information is used to extract two subgroups of interest, Mesenchymal and Immunoreactive.
 
 ### Equipment Setup
   * Download and install R from http://cran.r-project.org/
@@ -60,7 +60,8 @@ Software requirements:
   * Load libraries into the R session using the example below. Loading of libraries is required every time R is re-opened.
   
     * library(“limma”)
-  * All R files are available at https://github.com/BaderLab/EM-tutorials-docker/tree/master/R_scripts
+
+  
   * Alternately, R notebooks (use R markdown and creates a notebook similar to Jupyter notebooks) of this protocol are available at https://github.com/BaderLab/Cytoscape_workflows/tree/master/EnrichmentMapPipeline
 
 ### Data setup

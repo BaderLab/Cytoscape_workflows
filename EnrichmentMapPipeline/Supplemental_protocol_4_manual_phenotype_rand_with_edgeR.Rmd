@@ -72,7 +72,7 @@ analysis_name <- "Mesen_Vs_Immuno"
 
 ```{r}
 RNASeq <- read.table( 
-  file.path(working_dir,"Supplementary_Table12_TCGA_RNASeq_rawcounts.txt"),  
+  file.path(working_dir,"Supplementary_Table10_TCGA_RNASeq_rawcounts.txt"),  
   header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
 ```
 
@@ -81,7 +81,7 @@ RNASeq <- read.table(
 
 ```{r}
 classDefinitions_RNASeq <- read.table( 
-  file.path(working_dir, "Supplementary_Table13_RNASeq_classdefinitions.txt"), 
+  file.path(working_dir, "Supplementary_Table11_RNASeq_classdefinitions.txt"), 
   header = TRUE, sep = "\t", quote="\"", stringsAsFactors = FALSE)
 ```
 
