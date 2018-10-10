@@ -86,7 +86,7 @@ expression_file <- "Supplementary_Table6_TCGA_OV_RNAseq_expression.txt"
 
 2. Load in the gene sets from a GMT file.
 
-### Download the latest pathway definition file from the updated baderlab geneset files
+### Download the latest pathway definition file from the updated baderlab gene set files
 Only Human, Mouse and Rat gene set files are currently available on the Baderlab downloads site.  If you are working with a species other than human (and it is either rat or mouse) change the gmt_url below to correct species. Check [here](http://download.baderlab.org/EM_Genesets/current_release/) to see all available species. 
 
 This can be done automatically through R or can be done manually through the website.
@@ -219,7 +219,7 @@ If you haven't defined the data above using RNA-seq data or microarray data, Set
 #classes <- class definitions for each of the samples in the dataset
 ```
 
-### Filter genesets to only contain genes found in the analysis set
+### Filter gene sets to only contain genes found in the analysis set
 5. Camera[@camera] and ROAST[@roast] require that the gene sets are filtered such that all genes in gene sets have expression values in the dataset. Use function in limma (ids2indices) to convert gene identifiers in the geneset to indices in the dataset.
 ```{r}
 genesets_filtered <- ids2indices(genesets$genesets, rownames(data_for_gs_analysis), 
@@ -400,19 +400,39 @@ response <- renameNetwork(current_network_name, as.numeric(current_network_suid)
 ```
 
 When building a network if the commandsGet returns an error similar to this:
+
 "RCy3::commandsGET, HTTP Error Code: 500
- url=http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic
-&gmtFile=[**path/to/file**]/data/Supplementary_Table3_Human_GOBP_ 
-AllPathways_no_GO_iea_March_01_2018_symbol.gmt &pvalue=%200.05&qvalue=%200.0001&similaritycutoff=%200.25&coefficients=%20JACCARD
+
+url=http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic
+ 
+&gmtFile=[**path/to/file**]/data/Supplementary_Table3_Human_GOBP_
+
+AllPathways_no_GO_iea_March_01_2018_symbol.gmt
+
+&pvalue=%200.05&qvalue=%200.0001&similaritycutoff=%200.25&coefficients=%20JACCARD
+
 &enrichmentsDataset1=[**path/to/file**]/data/mroast_results_generic_em.txt
+
 &expressionDataset1=[**path/to/file**]/data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt
+
 Error in commandsGET(em_command) : "
 
-Copy the url (for example from the above error use "http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic
+
+Copy the url (for example, from the above error use:
+
+"http://localhost:1234/v1/commands/enrichmentmap/build?analysisType=generic
+
 &gmtFile=[**path/to/file**]/data/Supplementary_Table3_Human_GOBP_ 
-AllPathways_no_GO_iea_March_01_2018_symbol.gmt &pvalue=%200.05&qvalue=%200.0001&similaritycutoff=%200.25&coefficients=%20JACCARD
+
+AllPathways_no_GO_iea_March_01_2018_symbol.gmt 
+
+&pvalue=%200.05&qvalue=%200.0001&similaritycutoff=%200.25&coefficients=%20JACCARD
+
 &enrichmentsDataset1=[**path/to/file**]/data/mroast_results_generic_em.txt
-&expressionDataset1=[**path/to/file**]/data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt") and paste it into a web browser to get a more descriptive error message.  **Do not copy the above link to your web browser.  The url is specific to the machine you have run the notebook on. copy the url from your error message.**
+
+&expressionDataset1=[**path/to/file**]/data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt") 
+
+and paste it into a web browser to get a more descriptive error message.  **Do not copy the above link to your web browser.  The url is specific to the machine you have run the notebook on. copy the url from your error message.**
 
 Sometimes the above error will come back when everything is fine.  If there are no results returned because nothing passes the thresholds you specified the above error with appear in R.  In the web browser after following the above link will show the error "Failed: None of the gene sets have passed the filter. Try relaxing the gene set filter parameters."
 

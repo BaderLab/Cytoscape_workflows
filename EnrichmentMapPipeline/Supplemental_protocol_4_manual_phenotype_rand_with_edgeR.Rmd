@@ -28,19 +28,19 @@ output:
 bibliography: sup_protocol1_references.bib
 csl: nature-protocols.csl
 ---
-# Supplementary Protocol 4 – pperform manual phenotype randomizations using edgeR followed by GSEA and EM
+# Supplementary Protocol 4 – perform manual phenotype randomizations using edgeR followed by GSEA and EM
 
 This protocol demonstrates how to code manual phenotype permutation for RNA-seq data analyzed with edgeR and GSEA.
 
-GSEA calculates for each tested gene-set an enrichment score (ES) which quantifies the enrichment of the gene set. A pvalue is needed to estimate if this enrichment (ES) is greater than one that could be obtained by chance only. There are two ways to estimate the pvalue and FDR within GSEA: gene-set permutation and phenotype permutation. 
+GSEA calculates for each tested gene-set an enrichment score (ES) which quantifies the enrichment of the gene set. A p-value is needed to estimate if this enrichment (ES) is greater than one that could be obtained by chance only. There are two ways to estimate the p-value and FDR within GSEA: gene-set permutation and phenotype permutation. 
 
 First, available as gene set permutation in GSEA,a null distribution can be constructed by randomly shuffling the genes in a given gene-sets: each time a shuffled gene-set is tested an ES is calculated. Then the observed ES for an individual gene set is compared to all the ES scores obtained for the same gene set across all the permutations to obtain an estimate of the gene set permutation FDR value.  
 
 An alternate way, available as phenotype permutation in GSEA, is to shuffle the sample labels that constitute the 2 groups to be compared. After shuffling the sample labels differential expression is recalculated. With a random shuffle of the samples not many genes should be found significantly differentially expressed and as a result not many pathways should be found significantly enriched. For each tested gene set, the observed ES is compared to all ES obtained with the shuffled samples and an FDR is estimated. 
 
-Note about phenotype permutation: In the GSEA interface, there is one option to upload an entire expression matrix and a class definition file (.cls) and perform the phenotype permutation. However the choice of tests are limited to basic statistical measures (signal to noise, t-test) and tests using non negative binomial distribution or linear models such as the ones implemented in edgeR and DEseq and recommended for RNA-seq counts data are not available. Therefore,  in this protocol, we are performing the permutations outside GSEA. Differential expression is calculated within edgeR between the ‘immunoreactive’ and ‘mesenchymal’ type and GSEA is run to get the observed ES. Then, 1000 permutations are computed by shuffling the samples. Each permutation run consists of :1) shuffling the samples which results in the formation of 2 random groups. 2) calculate differential expression within edgeR between these 2 groups 3) run GSEA and obtain the ES and NES for this random permutation.  Finally, for each gene-set, the pvalue is calculated by counting the number of times the observed ES was greater than the ES obtained from the random permutations. 
+Note about phenotype permutation: In the GSEA interface, there is one option to upload an entire expression matrix and a class definition file (.cls) and perform the phenotype permutation. However the choice of tests are limited to basic statistical measures (signal to noise, t-test) and tests using non negative binomial distribution or linear models such as the ones implemented in edgeR and DEseq and recommended for RNA-seq counts data are not available. Therefore,  in this protocol, we are performing the permutations outside GSEA. Differential expression is calculated within edgeR between the ‘immunoreactive’ and ‘mesenchymal’ type and GSEA is run to get the observed ES. Then, 1000 permutations are computed by shuffling the samples. Each permutation run consists of :1) shuffling the samples which results in the formation of 2 random groups. 2) calculate differential expression within edgeR between these 2 groups 3) run GSEA and obtain the ES and NES for this random permutation.  Finally, for each gene-set, the p-value is calculated by counting the number of times the observed ES was greater than the ES obtained from the random permutations. 
 
-**NOTE: Performing this randomization with R is very resource intensive and time consuming.  (On a intel i7 computer with 16GB 1000 permutations took more than 12.5 hours)**
+**NOTE: Performing this randomization with R is very resource intensive and time consuming.  (On a intel i7 computer with 16GB 1000 permutations took more than 9.5 hours)**
 
 
 ## Process RNA-seq data
@@ -58,7 +58,7 @@ tryCatch(expr = { library("edgeR")},
          finally = library("edgeR"))
 
 working_dir <- file.path(".","data")
-rand_working_dir <- file.path(".","data", "Randomizations_round2")
+rand_working_dir <- file.path(".","data", "Randomizations_round3")
 
 #The field in the class definition file that defines the classes of the data.
 data_classes <- "SUBTYPE"
@@ -68,7 +68,7 @@ analysis_name <- "Mesen_Vs_Immuno"
 
 
 ### Load Expression Data
-2. Load the expression dataset of 300 tumours, with 79 classified as Immunoreactive, 72 classified as Mesenchymal, 69 classified as Differentiated, and 80 classified as Proliferative samples. The TCGA counts data was retrieved from the GDC[@GDC] and contained counts per mRNA transcript determined using the RSEM method for 19947 transcripts and 300 samples.
+2. Load the expression dataset of 296 tumours, with 79 classified as Immunoreactive, 71 classified as Mesenchymal, 67 classified as Differentiated, and 79 classified as Proliferative samples. The TCGA counts data was retrieved from the GDC[@GDC] and contained counts per mRNA transcript determined using the RSEM method for 19947 transcripts and 300 samples.
 
 ```{r}
 RNASeq <- read.table( 
@@ -127,7 +127,7 @@ d <- estimateCommonDisp(d)
 d <- estimateTagwiseDisp(d)
 ```
 
-```{r  echo=FALSE, fig.cap="MDS plot of all the different ovarian cancer subtypes"}
+```{r  echo=FALSE, fig.cap="MDS plot of all the different ovarian cancer subtypes", fig.align="center", fig.pos="!ht"}
 if(exists("mds_filename")){
   knitr::include_graphics(mds_filename)
 }
@@ -198,7 +198,7 @@ gsea_jar <- "./gsea-3.0.jar"
 #Gsea takes a long time to run.  If you have already run GSEA manually or previously 
 # there is no need to re-run GSEA.  Make sure the gsea results are in the current 
 # directory and the notebook will be able to find them and use them.
-run_gsea = FALSE
+run_gsea = TRUE
 
 # leave blank if you want the notebook to discover the gsea directory for itself
 #gsea_directory = paste(working_dir,"Mesen_vs_Immuno.GseaPreranked.1497635459262",sep="/") 
@@ -336,7 +336,7 @@ if(run_gsea){
 
 
 ### Calculate FDR
-10. In order to calculate the FDR load in the GSEA results from each of the randomizations.  For each gene set collect its es and nes values.  To calculate the FDR for each gene set:
+10. In order to calculate the FDR load in the GSEA results from each of the randomizations.  For each gene set collect its ES and NES values.  To calculate the FDR for each gene set:
 
  * For given gene set get all random ES and NES values.
  * If given gene set has a negative ES value, count the number of random ES values are less than it.  Divide count by number of randomizations to get the FDR.
@@ -473,7 +473,7 @@ if(num_randomizations >= 1000){
 ```
 
 
-```{r echo=FALSE, fig.cap="FDR Saturation curve - number of signifincant gene sets for the FDR threshold < 0.01 for different number of randomizations.",out.width="50%"}
+```{r echo=FALSE, fig.cap="FDR Saturation curve - number of signifincant gene sets for the FDR threshold < 0.01 for different number of randomizations.",out.width="75%" , fig.align="center", fig.pos="!ht"}
 if(exists("saturation_curve_filename")){
   knitr::include_graphics(saturation_curve_filename)
 }
@@ -489,7 +489,7 @@ plot(cbind(gsrand_gsea_results$FDR.q.val, new_fdr), ylab="edgeR randomization FD
 dev.off()
 ```
 
-```{r echo=FALSE, fig.cap="Comparison of the FDR values using gsrand vs phenotype randomization.",out.width="50%"}
+```{r echo=FALSE, fig.cap="Comparison of the FDR values using gsrand vs phenotype randomization.",out.width="75%", fig.align="center", fig.pos="!ht"}
 if(exists("fdr_comparison_filename")){
   knitr::include_graphics(fdr_comparison_filename)
 }
@@ -499,13 +499,14 @@ Plot the comparison of the FDR values using gsrand vs phenotype randomization fr
 ```{r}
 log_fdr_comparison_filename = file.path(rand_working_dir,"log_fdr_comparison.png")
 png(log_fdr_comparison_filename)
-plot(cbind(-log10(gsrand_gsea_results$FDR.q.val), -log10(new_fdr)), ylab="-log10 edgeR randomization FDR", 
+plot(cbind(-log10(gsrand_gsea_results$FDR.q.val), -log10(new_fdr)), 
+     ylab="-log10 edgeR randomization FDR", 
      xlab="-log10 gs randomizations FDR", 
      main="-log10 transformed - GSEA gs rand FDR vs \nedgeR manual rand FDR")
 dev.off()
 ```
 
-```{r echo=FALSE, fig.cap="Comparison of the FDR values using gsrand vs phenotype randomization (-log10 FDR).",out.width="50%"}
+```{r echo=FALSE, fig.cap="Comparison of the FDR values using gsrand vs phenotype randomization (-log10 FDR).",out.width="75%", fig.align="center", fig.pos="!ht"}
 if(exists("log_fdr_comparison_filename")){
   knitr::include_graphics(log_fdr_comparison_filename)
 }
@@ -527,7 +528,7 @@ dev.off()
 ```
 
 
-```{r echo=FALSE, fig.cap="Comparison of the FDR values using gsrand vs phenotype randomization for just genesets that are significant in at least one analysis (-log10 FDR).",out.width="50%"}
+```{r echo=FALSE, fig.cap="Comparison of the FDR values using gsrand vs phenotype randomization for just gene sets that are significant in at least one analysis (-log10 FDR).",out.width="75%" , fig.align="center", fig.pos="!ht"}
 if(exists("top_fdr_comparison_filename")){
   knitr::include_graphics(top_fdr_comparison_filename)
 }
@@ -548,13 +549,13 @@ results <- draw.pairwise.venn(area1 = length(a),
 dev.off()
 ```
 
-```{r echo=FALSE,out.width="50%"}
+```{r echo=FALSE,out.width="75%", fig.align="center", fig.pos="!ht"}
 if(exists("two_method_overlap")){
   knitr::include_graphics(two_method_overlap)
 }
 ```
 
-Figure: Overlap of gsrand and edgeR_rand - compare the number of significant (FDR < 0.01) gene sets from the two methods, GSEA gs randomization and edgeR manual randomization
+Figure 8: Overlap of gsrand and edgeR_rand - Compare the number of significant (FDR < 0.01) gene sets from the two methods, GSEA gs randomization and edgeR manual randomization.
 
 ## Launch Cytoscape
 Create EM through CyREST interface - make sure you open Cytoscape with a -R 1234 (to enable rest functionality) and allow R to talk directly to Cytoscape.
@@ -651,14 +652,17 @@ if(file.exists(output_network_file)){
   } 
 
 #export the network
-exportImage(output_network_file, type = "pdf")
+response <- exportImage(output_network_file, type = "pdf")
 
 ```
 
 
-```{r initialnetwork, echo=FALSE, fig.cap="Example enrichment map created from manual phenotype randomization in R using edgeR (FDR threshold<0.01)"}
+```{r initialnetwork, echo=FALSE , fig.align="center", fig.pos="!ht"}
 knitr::include_graphics(file.path(getwd(),"manual_phenotype_randomization_forpdf.pdf"))
 ```
+
+Figure 9: Example enrichment map created from manual phenotype randomization in R using edgeR (FDR threshold<0.01)
+
 
 ```{r, eval = FALSE,echo=FALSE, warning=FALSE}
 library(knitr)

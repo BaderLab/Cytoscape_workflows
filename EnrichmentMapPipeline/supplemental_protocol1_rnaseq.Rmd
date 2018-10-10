@@ -66,7 +66,7 @@ data_classes <- "SUBTYPE"
 
 
 ### Load Expression Data
-2. Load the expression dataset of 300 tumours, with 79 classified as Immunoreactive, 72 classified as Mesenchymal, 69 classified as Differentiated, and 80 classified as Proliferative samples. The TCGA counts data was retrieved from the GDC[@GDC] and contained counts per mRNA transcript determined using the RSEM method for 19947 transcripts and 300 samples.
+2. Load the expression dataset of 296 tumours, with 79 classified as Immunoreactive, 71 classified as Mesenchymal, 67 classified as Differentiated, and 79 classified as Proliferative samples. The TCGA counts data was retrieved from the GDC[@GDC] and contained counts per mRNA transcript determined using the RSEM method for 19947 transcripts and 300 samples.
 
 ```{r}
 RNASeq <- read.table( 
@@ -125,7 +125,7 @@ d <- estimateCommonDisp(d)
 d <- estimateTagwiseDisp(d)
 ```
 
-```{r  echo=FALSE, fig.cap="MDS plot of all the different ovarian cancer subtypes"}
+```{r  echo=FALSE, fig.cap="MDS plot of all the different ovarian cancer subtypes", fig.align="center", fig.pos="!ht"}
 if(exists("mds_filename")){
   knitr::include_graphics(mds_filename)
 }
@@ -371,7 +371,7 @@ dev.off()
 
 
 
-```{r  echo=FALSE, fig.cap="Heatmap of all genes and all patient samples.  Different patient cancer types are marked on the x-axis.  Genes are clustered according to expression and patients are ordered according to subtype."}
+```{r  echo=FALSE, fig.cap="Heatmap of all genes and all patient samples.  Different patient cancer types are marked on the x-axis.  Genes are clustered according to expression and patients are ordered according to subtype.", fig.align="center", fig.pos="!ht"}
 if(exists("heatmap_filename")){
   knitr::include_graphics(heatmap_filename)
 }

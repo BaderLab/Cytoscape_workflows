@@ -39,13 +39,21 @@ add_setup = FALSE
 ```{r autodoc, child='supplemental_protocol1_rnaseq.Rmd', eval=TRUE, echo=TRUE}
 ``` 
 
+\newpage
+
 ```{r autodoc, child='supplemental_protocol2_microarray.Rmd', eval=TRUE, echo=TRUE}
 ``` 
+
+\newpage
 
 ```{r autodoc, child='supplemental_protocol3_R_gse_methods.Rmd', eval=TRUE, echo=TRUE}
 ``` 
 
+\newpage
+
 ```{r autodoc, child='Supplemental_protocol_4_manual_phenotype_rand_with_edgeR.Rmd', eval=TRUE, echo=TRUE}
 ``` 
+
+\newpage
 
 ## References
