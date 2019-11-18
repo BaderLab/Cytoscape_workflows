@@ -324,7 +324,7 @@ response <- renameNetwork(title=current_network_name,
 
 fitContent()
 
-output_network_file <- file.path(getwd(),"initial_screenshot_network1.png")
+output_network_file <- file.path(getwd(),"initial_screenshot_network.png")
 
 if(file.exists(output_network_file)){
   #cytoscape hangs waiting for user response if file already exists.  Remove it first
