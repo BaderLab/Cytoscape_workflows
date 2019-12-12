@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Ruth Isserlin" />
+
+<meta name="date" content="2019-12-12" />
+
+<title>Supplementary Protocol 5 – Create Multi dataset Enrichment Map and Theme investigation</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/paper.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #0000ff; } /* Keyword */
+code > span.ch { color: #008080; } /* Char */
+code > span.st { color: #008080; } /* String */
+code > span.co { color: #008000; } /* Comment */
+code > span.ot { color: #ff4000; } /* Other */
+code > span.al { color: #ff0000; } /* Alert */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #008000; font-weight: bold; } /* Warning */
+code > span.cn { } /* Constant */
+code > span.sc { color: #008080; } /* SpecialChar */
+code > span.vs { color: #008080; } /* VerbatimString */
+code > span.ss { color: #008080; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { } /* Variable */
+code > span.cf { color: #0000ff; } /* ControlFlow */
+code > span.op { } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #ff4000; } /* Preprocessor */
+code > span.do { color: #008000; } /* Documentation */
+code > span.an { color: #008000; } /* Annotation */
+code > span.cv { color: #008000; } /* CommentVar */
+code > span.at { } /* Attribute */
+code > span.in { color: #008000; } /* Information */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 64px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h2 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h3 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h4 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h5 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.section h6 {
+  padding-top: 69px;
+  margin-top: -69px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-inverse  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Enrichment Map Protocol</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="https://baderlab.github.io/Cytoscape_workflows/">
+    <span class="fa fa-home"></span>
+     
+    Home
+  </a>
+</li>
+<li>
+  <a href="https://www.biorxiv.org/content/early/2017/12/12/232835">
+    <span class="fa fa-newspaper-o"></span>
+     
+    bioRxiv paper
+  </a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    <span class="fa fa-list"></span>
+     
+    Table of Contents
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li class="dropdown-header">Supplementary Protocols</li>
+    <li>
+      <a href="Download_TCGA_data.html">Download TCGA Data</a>
+    </li>
+    <li>
+      <a href="supplemental_protocol1_rnaseq.html">Process RNASeq data</a>
+    </li>
+    <li>
+      <a href="supplemental_protocol2_microarray.html">Process Microarray data</a>
+    </li>
+    <li class="divider"></li>
+    <li class="dropdown-header">Protocol 2</li>
+    <li>
+      <a href="Protocol2_createEM.html">Create Enrichment Map</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Supplementary Protocol 5 – Create Multi dataset Enrichment Map and Theme investigation</h1>
+<h4 class="author">Ruth Isserlin</h4>
+<h4 class="date">2019-12-12</h4>
+
+</div>
+
+
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#make sure the RCy3 is installed. </span>
+<span class="cf">if</span>(<span class="op">!</span><span class="kw">requireNamespace</span>(<span class="st">&quot;RCy3&quot;</span>, <span class="dt">quietly =</span> <span class="ot">TRUE</span>)){
+  <span class="cf">if</span> (<span class="op">!</span><span class="kw">requireNamespace</span>(<span class="st">&quot;BiocManager&quot;</span>, <span class="dt">quietly =</span> <span class="ot">TRUE</span>)){
+      <span class="kw">install.packages</span>(<span class="st">&quot;BiocManager&quot;</span>)
+    }
+  BiocManager<span class="op">::</span><span class="kw">install</span>(<span class="st">&quot;RCy3&quot;</span>)
+}
+
+<span class="cf">if</span>(<span class="op">!</span><span class="kw">requireNamespace</span>(<span class="st">&quot;RCurl&quot;</span>, <span class="dt">quietly =</span> <span class="ot">TRUE</span>)){
+  <span class="kw">install.packages</span>(<span class="st">&quot;Rcurl&quot;</span>)
+}</code></pre></div>
+<div id="configurable-parameters" class="section level2">
+<h2><span class="header-section-number">0.1</span> Configurable Parameters</h2>
+<p>In order to run GSEA automatically through the notebook you will need to download the gsea jar from <a href="http://software.broadinstitute.org/gsea/downloads.jsp">here</a>. Specify the exact path to the gsea jar in the parameters in order to automatically compute enrichments using GSEA.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">working_dir &lt;-<span class="st"> </span><span class="kw">file.path</span>(<span class="st">&quot;.&quot;</span>,params<span class="op">$</span>working_dir)
+
+<span class="co">#path to GSEA jar </span>
+<span class="co"># In order to run GSEA automatically you need to speciry the path to the gsea jar file.</span>
+<span class="co">#With the latest release of gsea (4.0.2) they no longer release a bundled jar</span>
+<span class="co"># and instead release a scriptted way to launch the gsea client.</span>
+<span class="co"># specify the java version as 11 if you are using the later version gsea</span>
+<span class="co"># the gsea_jar also needs to be the full path to the GSEA 4.0.2 directory that you</span>
+<span class="co"># downloaded from GSEA. for example (/Users/johnsmith/GSEA_4.0.2/gsea-cli.sh)</span>
+gsea_jar &lt;-<span class="st"> </span>params<span class="op">$</span>gsea_jar
+java_version &lt;-<span class="st"> </span>params<span class="op">$</span>java_version
+
+<span class="co">#Gsea takes a long time to run.  If you have already run GSEA manually or previously there is no need to re-run GSEA.  Make sure the </span>
+<span class="co"># gsea results are in the current directory and the notebook will be able to find them and use them.</span>
+run_gsea =<span class="st"> </span>params<span class="op">$</span>run_gsea</code></pre></div>
+<p>Get all the rank files in the working directory</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rank_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(working_dir)[<span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;ranks.rnk&quot;</span>,<span class="kw">list.files</span>(working_dir))]</code></pre></div>
+<p>Create a directory to hold the pathway analysis folders.</p>
+<p>** This is an important step. In order for Enrichment map to create a multi dataset map the assumption is that all the results files will be together in a directory where each sub directory is an individual analysis **</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">multi_em_dir &lt;-<span class="st"> </span><span class="kw">file.path</span>(working_dir,<span class="st">&quot;Multi_dataset_EM_analysis&quot;</span>)
+<span class="cf">if</span>(<span class="op">!</span><span class="kw">dir.exists</span>(multi_em_dir )){
+  <span class="kw">dir.create</span>(multi_em_dir)
+}
+
+<span class="co"># copy the rank files to the new directory - if they aren&#39;t already there</span>
+<span class="cf">if</span>(<span class="op">!</span><span class="kw">file.exists</span>(<span class="kw">file.path</span>(multi_em_dir))){
+  <span class="kw">file.copy</span>(<span class="kw">file.path</span>(working_dir, rank_files), <span class="kw">file.path</span>(multi_em_dir,rank_files))
+}
+
+<span class="co">#after the files are copied over change the working dir to the newly </span>
+<span class="co"># create directory</span>
+working_dir &lt;-<span class="st"> </span>multi_em_dir</code></pre></div>
+</div>
+<div id="download-the-latest-pathway-definition-file" class="section level2">
+<h2><span class="header-section-number">0.2</span> Download the latest pathway definition file</h2>
+<p>Only Human, Mouse and Rat gene set files are currently available on the baderlab downloads site. If you are working with a species other than human (and it is either rat or mouse) change the gmt_url below to correct species. Check <a href="http://download.baderlab.org/EM_Genesets/current_release/">here</a> to see all available species.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">gmt_url =<span class="st"> &quot;http://download.baderlab.org/EM_Genesets/current_release/Human/symbol/&quot;</span>
+
+<span class="co">#list all the files on the server</span>
+filenames =<span class="st"> </span>RCurl<span class="op">::</span><span class="kw">getURL</span>(gmt_url)
+tc =<span class="st"> </span><span class="kw">textConnection</span>(filenames)
+contents =<span class="st"> </span><span class="kw">readLines</span>(tc)
+<span class="kw">close</span>(tc)
+
+<span class="co">#get the gmt that has all the pathways and does not include terms inferred from electronic annotations(IEA)</span>
+<span class="co">#start with gmt file that has pathways only</span>
+rx =<span class="st"> </span><span class="kw">gregexpr</span>(<span class="st">&quot;(?&lt;=&lt;a href=</span><span class="ch">\&quot;</span><span class="st">)(.*.GOBP_AllPathways_no_GO_iea.*.)(.gmt)(?=</span><span class="ch">\&quot;</span><span class="st">&gt;)&quot;</span>,
+  contents, <span class="dt">perl =</span> <span class="ot">TRUE</span>)
+gmt_file =<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">regmatches</span>(contents, rx))
+
+dest_gmt_file &lt;-<span class="st"> </span><span class="kw">file.path</span>(multi_em_dir,gmt_file )
+
+<span class="kw">download.file</span>(
+    <span class="kw">paste</span>(gmt_url,gmt_file,<span class="dt">sep=</span><span class="st">&quot;&quot;</span>),
+    <span class="dt">destfile=</span>dest_gmt_file
+)</code></pre></div>
+</div>
+<div id="run-gsea" class="section level2">
+<h2><span class="header-section-number">0.3</span> Run GSEA</h2>
+<p>(GSEA)[<a href="http://software.broadinstitute.org/gsea/index.jsp" class="uri">http://software.broadinstitute.org/gsea/index.jsp</a>] is a stand alone java program with many customizable options. It can be easily run through its integrated user interface. To make this a seemless pipeline we can run GSEA from the command line with a set of options. Any of the supplied options can be customized and there are many additional options that can be specified. For more details see (here)[<a href="http://software.broadinstitute.org/gsea/doc/GSEAUserGuideTEXT.htm#_Running_GSEA_from" class="uri">http://software.broadinstitute.org/gsea/doc/GSEAUserGuideTEXT.htm#_Running_GSEA_from</a>]</p>
+<p>In the below command the following options have been specified:</p>
+<ul>
+<li>rnk - path to the rank file</li>
+<li>gmx - path to the gene set definition (gmt) file</li>
+<li>collapse - true/false indicates whether the expression/rnk file needs to be collapsed from probes to gene symbols</li>
+<li>nperm - number of permutations</li>
+<li>permute - permute gene sets or phentoypes. For GSEA preranked you can only permute genesets.</li>
+<li>scoring_scheme -</li>
+<li>rpt_label - name of the directory with output</li>
+<li>num - number of results to plot output file for</li>
+<li>rnd_seed - random seed to use</li>
+<li>set_max - maximum size for individual gene sets. In GSEA interface this is set to 500 but we prefer to use a more stringent setting of 200.</li>
+<li>set_min - minimum size for individual gene sets</li>
+<li>zip_report - true/false to zip output directory</li>
+<li>out - directory where to place the result directory.</li>
+<li>gui - true/false. When running GSEA from the commandline this needs to be false.</li>
+</ul>
+<p>If you are using GSEA 4.0.2 you will need to update your system to use Java 11. The GSEA command line interface has changed slightly in this version of GSEA. Instead of launching GSEA using java you need to use one of the scripts supplied by GSEA. (gsea-cli.bat for Windows and gsea-cli.sh for Mac or linux systems).</p>
+<p>In the GSEA 4.0.2 command the following options can been specified:</p>
+<ul>
+<li>rnk - path to the rank file</li>
+<li>gmx - path to the gene set definition (gmt) file</li>
+<li>collapse - true/false indicates whether the expression/rnk file needs to be collapsed from probes to gene symbols</li>
+<li>nperm - number of permutations</li>
+<li>scoring_scheme -</li>
+<li>rpt_label - name of the directory with output</li>
+<li>rnd_seed - random seed to use</li>
+<li>set_max - maximum size for individual gene sets. In GSEA interface this is set to 500 but we prefer to use a more stringent setting of 200.</li>
+<li>set_min - minimum size for individual gene sets</li>
+<li>zip_report - true/false to zip output directory</li>
+<li>out - directory where to place the result directory.</li>
+</ul>
+<p>If you have encounter an out of memory error you will need to open you gsea-cli script and manually update your xmx parameter (more information on this can be found in the GSEA_4.0.2/README file)</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#run GSEA for each of the rank files.</span>
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(rank_files)){
+    current_rank_file &lt;-<span class="st"> </span>rank_files[i]
+    
+    analysis_name &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">strsplit</span>(rank_files[i],<span class="dt">split =</span> <span class="st">&quot;_&quot;</span>))[<span class="dv">1</span>]
+    <span class="co">#if you are using GSEA 4.0.2 then you need to use the command script</span>
+    <span class="co"># as opposed to launching GSEA through java. </span>
+    <span class="co"># in the later version of GSEA command line implementation the following </span>
+    <span class="co"># parameters are no longer valid: -permute gene_set,  -num 100, -gui false</span>
+    <span class="co"># no longer need to specify the whole path to the GseaPreranked package</span>
+    <span class="cf">if</span>(run_gsea <span class="op">&amp;&amp;</span><span class="st"> </span>java_version <span class="op">==</span><span class="st"> &quot;11&quot;</span>){
+      command &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;&quot;</span>,gsea_jar,  <span class="st">&quot;GSEAPreRanked -gmx &quot;</span>, dest_gmt_file, <span class="st">&quot;-rnk&quot;</span> ,<span class="kw">file.path</span>(working_dir,current_rank_file ), <span class="st">&quot;-collapse false -nperm 1000 -scoring_scheme weighted -rpt_label &quot;</span>,analysis_name,<span class="st">&quot;  -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out&quot;</span> ,working_dir, <span class="st">&quot; &gt; gsea_output.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot; &quot;</span>)
+      <span class="kw">system</span>(command)
+    } <span class="cf">else</span> {
+      command &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;java  -Xmx1G -cp&quot;</span>,gsea_jar,  <span class="st">&quot;xtools.gsea.GseaPreranked -gmx&quot;</span>, dest_gmt_file, <span class="st">&quot;-rnk&quot;</span> ,<span class="kw">file.path</span>(working_dir,current_rank_file ), <span class="st">&quot;-collapse false -nperm 1000 -permute gene_set -scoring_scheme weighted -rpt_label &quot;</span>,analysis_name,<span class="st">&quot;  -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out&quot;</span> ,working_dir, <span class="st">&quot;-gui false &gt; gsea_output.txt&quot;</span>,<span class="dt">sep=</span><span class="st">&quot; &quot;</span>)
+      <span class="kw">system</span>(command)
+    }
+}</code></pre></div>
+</div>
+<div id="launch-cytoscape" class="section level2">
+<h2><span class="header-section-number">0.4</span> Launch Cytoscape</h2>
+<p>Create EM through Cyrest interface - make sure you open cytoscape with a -R 1234 (to enable rest functionality) and allow R to talk directly to cytoscape.</p>
+<p>Launch Cytoscape (by default cytoscape will automatically enable rest so as long as cytoscape 3.3 or higher is open R should be able to communicate with it)</p>
+</div>
+<div id="set-up-connection-from-r-to-cytoscape" class="section level2">
+<h2><span class="header-section-number">0.5</span> Set up connection from R to cytoscape</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Basic settings</span>
+port.number =<span class="st"> </span><span class="dv">1234</span>
+base.url =<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;http://localhost:&quot;</span>, <span class="kw">toString</span>(port.number), <span class="st">&quot;/v1&quot;</span>, <span class="dt">sep=</span><span class="st">&quot;&quot;</span>)
+
+<span class="co">#print(base.url)</span>
+
+version.url =<span class="st"> </span><span class="kw">paste</span>(base.url, <span class="st">&quot;version&quot;</span>, <span class="dt">sep=</span><span class="st">&quot;/&quot;</span>)
+cytoscape.open =<span class="st"> </span><span class="ot">TRUE</span>
+
+<span class="kw">tryCatch</span>(<span class="dt">expr =</span> { <span class="kw">GET</span>(version.url)}, 
+         <span class="dt">error =</span> <span class="cf">function</span>(e) { <span class="kw">return</span> (<span class="dt">cytoscape.open =</span> <span class="ot">FALSE</span>)}, <span class="dt">finally =</span><span class="cf">function</span>(r){ <span class="kw">return</span>(<span class="dt">cytoscape.open =</span> <span class="ot">TRUE</span>)})</code></pre></div>
+<pre><code>## [1] FALSE</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">if</span>(<span class="op">!</span>cytoscape.open){
+  <span class="co">#try and launch cytoscape</span>
+ <span class="kw">print</span>(<span class="st">&quot;Cytoscape is not open.  Please launch cytoscape.&quot;</span>)
+} <span class="cf">else</span>{
+  cytoscape.version =<span class="st">  </span>httr<span class="op">::</span><span class="kw">GET</span>(version.url)
+  cy.version =<span class="st"> </span>RJSONIO<span class="op">::</span><span class="kw">fromJSON</span>(<span class="kw">rawToChar</span>(cytoscape.version<span class="op">$</span>content))
+  <span class="kw">print</span>(cy.version)
+  
+}</code></pre></div>
+<pre><code>##       apiVersion cytoscapeVersion 
+##             &quot;v1&quot;          &quot;3.7.0&quot;</code></pre>
+</div>
+<div id="create-a-multi-dataset-em" class="section level2">
+<h2><span class="header-section-number">0.6</span> Create a multi dataset EM</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#defined threshold for GSEA enrichments (need to be strings for cyrest call)</span>
+pvalue_gsea_threshold &lt;-<span class="st"> </span>params<span class="op">$</span>pval_thresh
+qvalue_gsea_threshold &lt;-<span class="st"> </span>params<span class="op">$</span>fdr_thresh
+
+similarity_threshold &lt;-<span class="st"> &quot;0.375&quot;</span>
+similarity_metric =<span class="st"> &quot;COMBINED&quot;</span>
+
+cur_model_name &lt;-<span class="st"> &quot;Multi_dataset_EM&quot;</span>
+
+gsea_results_path &lt;-<span class="st"> </span>multi_em_dir
+
+<span class="co">#although there is a gmt file in the gsea edb results directory it have been filtered to </span>
+<span class="co">#contain only genes represented in the expression set.  If you use this fltered file you </span>
+<span class="co">#will get different pathway connectivity depending on the dataset being used.  We recommend </span>
+<span class="co">#using original gmt file used for the gsea analysis and not the filtered one in the results directory.</span>
+gmt_gsea_file &lt;-<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">getwd</span>(),dest_gmt_file)
+gsea_root_dir &lt;-<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">getwd</span>(),multi_em_dir)
+
+#######################################
+<span class="co">#create EM</span>
+current_network_name &lt;-<span class="st"> </span><span class="kw">paste</span>(cur_model_name,pvalue_gsea_threshold,qvalue_gsea_threshold,<span class="dt">sep=</span><span class="st">&quot;_&quot;</span>)
+
+em_command =<span class="st"> </span><span class="kw">paste</span>(<span class="st">&#39;enrichmentmap mastermap commonGMTFile=&#39;</span>,gmt_gsea_file,
+                   <span class="st">&#39;pvalue=&#39;</span>,pvalue_gsea_threshold, <span class="st">&#39;qvalue=&#39;</span>,qvalue_gsea_threshold,
+                   <span class="st">&#39;similaritycutoff=&#39;</span>,similarity_threshold,
+                   <span class="st">&#39;coefficients=&#39;</span>,similarity_metric,<span class="st">&#39;rootFolder=&#39;</span>, 
+                   gsea_root_dir,
+                   <span class="st">&#39;filterByExpressions=false&#39;</span>,
+                   <span class="st">&#39;commonExpressionFile=&#39;</span>,<span class="kw">file.path</span>(<span class="kw">getwd</span>(),params<span class="op">$</span>expression_file),
+                   <span class="dt">sep=</span><span class="st">&quot; &quot;</span>)
+
+<span class="co">#enrichment map command will return the suid of newly created network.</span>
+response &lt;-<span class="st"> </span>RCy3<span class="op">::</span><span class="kw">commandsGET</span>(em_command)
+
+current_network_suid &lt;-<span class="st"> </span><span class="dv">0</span>
+<span class="co">#enrichment map command will return the suid of newly created network unless it Failed.  </span>
+<span class="co">#If it failed it will contain the word failed</span>
+<span class="cf">if</span>(<span class="kw">grepl</span>(<span class="dt">pattern=</span><span class="st">&quot;Failed&quot;</span>, response)){
+  <span class="kw">paste</span>(response)
+} <span class="cf">else</span> {
+  current_network_suid &lt;-<span class="st"> </span>response
+}
+
+<span class="co">#check to see if the network name is unique</span>
+current_names &lt;-<span class="st"> </span>RCy3<span class="op">::</span><span class="kw">getNetworkList</span>()
+<span class="cf">if</span>(current_network_name <span class="op">%in%</span><span class="st"> </span>current_names){
+  <span class="co">#if the name already exists in the network names then put the SUID in front</span>
+  <span class="co"># of the name (this does not work if you put the suid at the end of the name)</span>
+  current_network_name &lt;-<span class="st"> </span><span class="kw">paste</span>(current_network_suid,current_network_name,  <span class="dt">sep=</span><span class="st">&quot;_&quot;</span>)
+}
+response &lt;-<span class="st"> </span>RCy3<span class="op">::</span><span class="kw">renameNetwork</span>(<span class="dt">title=</span>current_network_name, 
+                          <span class="dt">network =</span> <span class="kw">as.numeric</span>(current_network_suid),base.url)</code></pre></div>
+</div>
+<div id="change-the-coloring-on-the-network" class="section level2">
+<h2><span class="header-section-number">0.7</span> Change the coloring on the network</h2>
+<p>By default the network will colour each section of the pie using the NES value (GSEA analysis) and FDR value for any other analysis. This doesn’t let you see clearly which pathways are significant in each dataset. By changing the colouring type to “DATA_SET” each node will only be coloured if the pathway is significant in the given dataset (by the user defined thresholds).</p>
+<p>** The colours are set by default. There is no progrommatic way to change the colours. It can be done manually though.**</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">response &lt;-<span class="st"> </span>RCy3<span class="op">::</span><span class="kw">commandsGET</span>(<span class="st">&#39;enrichmentmap chart data=&quot;DATA_SET&quot;&#39;</span>)</code></pre></div>
+</div>
+<div id="define-themes" class="section level2">
+<h2><span class="header-section-number">0.8</span> Define themes</h2>
+<p>Annotate the Enrichment map in order to calculate the themes</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">response &lt;-<span class="st"> </span>RCy3<span class="op">::</span><span class="kw">commandsGET</span>(<span class="kw">paste</span>(<span class="st">&#39;autoannotate annotate-clusterBoosted network=&#39;</span>,current_network_suid,<span class="dt">sep=</span><span class="st">&quot;&quot;</span>))</code></pre></div>
+</div>
+<div id="create-a-summary-network" class="section level2">
+<h2><span class="header-section-number">0.9</span> Create a summary network</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">theme_network &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(RCy3<span class="op">::</span><span class="kw">commandsGET</span>(<span class="kw">paste</span>(<span class="st">&#39;autoannotate summary network=&#39;</span>, current_network_suid,<span class="dt">sep=</span><span class="st">&quot;&quot;</span>)))</code></pre></div>
+</div>
+<div id="get-all-the-theme-information" class="section level2">
+<h2><span class="header-section-number">0.10</span> Get all the theme information</h2>
+<p>Depending on the data type of the node attributes when the theme network is created they will be collapsed differently. You can set this behaviour manually in cytoscape from Edit -&gt; Preference -&gt; Group Preferences. For more info on this see <a href="http://manual.cytoscape.org/en/stable/Cytoscape_Preferences.html#managing-group-settings">here</a></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">  default_node_table &lt;-<span class="st"> </span>RCy3<span class="op">::</span><span class="kw">getTableColumns</span>(<span class="dt">table=</span> <span class="st">&quot;node&quot;</span>,<span class="dt">network =</span> theme_network)</code></pre></div>
+</div>
+<div id="output-all-themes-found-in-all-the-datasets" class="section level2">
+<h2><span class="header-section-number">0.11</span> Output all Themes found in all the datasets</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">num_datasets &lt;-<span class="st"> </span><span class="kw">length</span>(rank_files)
+
+dataset_chart &lt;-<span class="st"> </span><span class="kw">t</span>(<span class="kw">sapply</span>(default_node_table<span class="op">$</span><span class="st">`</span><span class="dt">EnrichmentMap::Dataset_Chart</span><span class="st">`</span>, <span class="cf">function</span> (x) { <span class="kw">return</span> (x)}))
+<span class="kw">rownames</span>(dataset_chart) &lt;-<span class="st"> </span>default_node_table<span class="op">$</span>name
+
+<span class="co">#calculate the number of datasets for each theme</span>
+dataset_per_theme &lt;-<span class="st"> </span><span class="kw">rowSums</span>(dataset_chart)
+
+<span class="co">#output the themes that are found in the most datasets</span>
+<span class="kw">rownames</span>(dataset_chart)[<span class="kw">which</span>(dataset_per_theme <span class="op">==</span><span class="st"> </span><span class="kw">max</span>(dataset_per_theme))]</code></pre></div>
+<pre><code>## [1] &quot;axonemal dynein microtubule&quot;</code></pre>
+</div>
+<div id="output-the-pathways-specific-to-each-dataset" class="section level2">
+<h2><span class="header-section-number">0.12</span> Output the pathways specific to each dataset</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#Go through each index of the dataset chart and output the pathways specific for each group</span>
+specific_to_theme_summary &lt;-<span class="st"> </span><span class="kw">list</span>()
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">dim</span>(dataset_chart)[<span class="dv">2</span>]){
+  current_dataset &lt;-<span class="st"> </span>i
+  
+  specific_to_theme_summary[[i]] &lt;-<span class="st"> </span><span class="kw">rownames</span>(dataset_chart)[<span class="kw">intersect</span>(<span class="kw">which</span>(dataset_per_theme <span class="op">==</span><span class="st"> </span><span class="dv">1</span>) , <span class="kw">which</span>(dataset_chart[,i]<span class="op">==</span><span class="dv">1</span>))]
+}
+
+<span class="co">#unfortunately there is no way currently to get which id corresponds to which dataset.  Guess which according to </span>
+<span class="co"># the order of the columns in the returned table.</span>
+<span class="kw">names</span>(specific_to_theme_summary) &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">lapply</span>(<span class="kw">colnames</span>(default_node_table)[<span class="kw">grep</span>(<span class="kw">colnames</span>(default_node_table),<span class="dt">pattern=</span><span class="st">&quot;pvalue&quot;</span>)],<span class="dt">FUN=</span><span class="cf">function</span>(x){<span class="kw">unlist</span>(<span class="kw">strsplit</span>(x, <span class="dt">split =</span><span class="st">&quot; &quot;</span>))[<span class="dv">2</span>]}))
+
+specific_to_theme_summary</code></pre></div>
+<pre><code>## $`(DiffvsRest.GseaPreranked)`
+## [1] &quot;pid aurora signaling&quot;              &quot;signal kinetochores amplification&quot;
+## [3] &quot;chromosome segregation sister&quot;    
+## 
+## $`(ImmunovsRest.GseaPreranked)`
+##  [1] &quot;camera-type eye sensory&quot;           &quot;cardiac septum morphogenesis&quot;     
+##  [3] &quot;ncam signaling neurite&quot;            &quot;positive interleukin-4 production&quot;
+##  [5] &quot;lymphocyte activation selection&quot;   &quot;central nervous neuron&quot;           
+##  [7] &quot;limb morphogenesis appendage&quot;      &quot;digestive tract development&quot;      
+##  [9] &quot;nephron epithelium kidney&quot;         &quot;growth factor stimulus&quot;           
+## [11] &quot;bmp tgf-beta pathway&quot;              &quot;negative regulation smoothened&quot;   
+## [13] &quot;involved wnt carcinoma&quot;           
+## 
+## $`(MesenvsRest.GseaPreranked)`
+##  [1] &quot;positive vasculature endothelial&quot;               
+##  [2] &quot;trna modification processing&quot;                   
+##  [3] &quot;coupled electron nadh&quot;                          
+##  [4] &quot;nucleotide excision repair&quot;                     
+##  [5] &quot;pid avb3 integrin&quot;                              
+##  [6] &quot;mature transcript cytoplasm&quot;                    
+##  [7] &quot;glycosaminoglycan chondroitin sulfate&quot;          
+##  [8] &quot;spliceosomal snrnp ribonucleoprotein&quot;           
+##  [9] &quot;smooth muscle proliferation&quot;                    
+## [10] &quot;mitochondrial translational termination&quot;        
+## [11] &quot;replication dna dna-dependent&quot;                  
+## [12] &quot;negative blood vessel&quot;                          
+## [13] &quot;blood vessel morphogenesis&quot;                     
+## [14] &quot;primary germ endoderm&quot;                          
+## [15] &quot;o-glycosylation domain-containing glycosylation&quot;
+## [16] &quot;pre-mrna splicing u12&quot;                          
+## [17] &quot;ribosomal subunit biogenesis&quot;                   
+## [18] &quot;protein-dna nucleosome centromere&quot;              
+## [19] &quot;assembly collagen formation&quot;                    
+## [20] &quot;substrate adhesion-dependent spreading&quot;         
+## [21] &quot;regulation chondrocyte cartilage&quot;               
+## [22] &quot;beta3 basement membranes&quot;                       
+## [23] &quot;gene silencing rna&quot;                             
+## [24] &quot;flagellum-dependent motility cilium-dependent&quot;  
+## [25] &quot;regulation igf activity&quot;                        
+## 
+## $`(ProlifvsRest.GseaPreranked)`
+##  [1] &quot;pid il8 cxcr2&quot;                         
+##  [2] &quot;complement maturation protein&quot;         
+##  [3] &quot;platelet activation coagulation&quot;       
+##  [4] &quot;leukocyte homeostasis number&quot;          
+##  [5] &quot;pid gmcsf pathway&quot;                     
+##  [6] &quot;blood coagulation hemostasis&quot;          
+##  [7] &quot;peptidyl-tyrosine phosphorylation stat&quot;
+##  [8] &quot;pattern receptor toll-like&quot;            
+##  [9] &quot;pid il4 2pathway&quot;                      
+## [10] &quot;cellular lipoprotein particle&quot;         
+## [11] &quot;erk1 erk2 cascade&quot;                     
+## [12] &quot;regulation secretion negative&quot;         
+## [13] &quot;osteoclast differentiation myeloid&quot;    
+## [14] &quot;beta2 integrin cell&quot;</code></pre>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = false;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

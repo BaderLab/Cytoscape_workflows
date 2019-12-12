@@ -1,0 +1,368 @@
+---
+title: "Supplementary Protocol 5 – Create Multi dataset Enrichment Map and Theme investigation"
+author: "Ruth Isserlin"
+date: "`r format(Sys.Date())`"
+params:
+  working_dir: data
+  run_gsea: FALSE
+  gsea_directory: ''
+  expression_file: data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt
+  gsea_jar: /Users/ruthisserlin/Downloads/GSEA_4.0.2/gsea-cli.sh
+  java_version: 11
+  pval_thresh: 1
+  fdr_thresh: 0.0001
+output:
+  html_document:
+    highligh: haddock
+    keep_md: yes
+    number_sections: yes
+    theme: paper
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  html_notebook:
+    highligh: haddock
+    number_sections: yes
+    theme: paper
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+bibliography: sup_protocol1_references.bib
+csl: nature-protocols.csl
+---
+
+```{r}
+#make sure the RCy3 is installed. 
+if(!requireNamespace("RCy3", quietly = TRUE)){
+  if (!requireNamespace("BiocManager", quietly = TRUE)){
+      install.packages("BiocManager")
+    }
+  BiocManager::install("RCy3")
+}
+
+if(!requireNamespace("RCurl", quietly = TRUE)){
+  install.packages("Rcurl")
+}
+
+```
+
+
+## Configurable Parameters
+In order to run GSEA automatically through the notebook you will need to download the gsea jar from [here](http://software.broadinstitute.org/gsea/downloads.jsp).  Specify the exact path to the gsea jar in the parameters in order to automatically compute enrichments using GSEA.
+
+```{r initialize parameters}
+
+working_dir <- file.path(".",params$working_dir)
+
+#path to GSEA jar 
+# In order to run GSEA automatically you need to speciry the path to the gsea jar file.
+#With the latest release of gsea (4.0.2) they no longer release a bundled jar
+# and instead release a scriptted way to launch the gsea client.
+# specify the java version as 11 if you are using the later version gsea
+# the gsea_jar also needs to be the full path to the GSEA 4.0.2 directory that you
+# downloaded from GSEA. for example (/Users/johnsmith/GSEA_4.0.2/gsea-cli.sh)
+gsea_jar <- params$gsea_jar
+java_version <- params$java_version
+
+#Gsea takes a long time to run.  If you have already run GSEA manually or previously there is no need to re-run GSEA.  Make sure the 
+# gsea results are in the current directory and the notebook will be able to find them and use them.
+run_gsea = params$run_gsea
+```
+
+
+Get all the rank files in the working directory
+```{r}
+rank_files <- list.files(working_dir)[grep(pattern = "ranks.rnk",list.files(working_dir))]
+```
+
+Create a directory to hold the pathway analysis folders.  
+
+** This is an important step. In order for Enrichment map to create a multi dataset map the assumption is that all the results files will be together in a directory where each sub directory is an individual analysis **
+
+```{r}
+
+multi_em_dir <- file.path(working_dir,"Multi_dataset_EM_analysis")
+if(!dir.exists(multi_em_dir )){
+  dir.create(multi_em_dir)
+}
+
+# copy the rank files to the new directory - if they aren't already there
+if(!file.exists(file.path(multi_em_dir))){
+  file.copy(file.path(working_dir, rank_files), file.path(multi_em_dir,rank_files))
+}
+
+#after the files are copied over change the working dir to the newly 
+# create directory
+working_dir <- multi_em_dir
+```
+
+## Download the latest pathway definition file
+Only Human, Mouse and Rat gene set files are currently available on the baderlab downloads site.  If you are working with a species other than human (and it is either rat or mouse) change the gmt_url below to correct species. Check [here](http://download.baderlab.org/EM_Genesets/current_release/) to see all available species. 
+
+```{r download baderlab gmt file, echo=TRUE, message=FALSE, warning=FALSE}
+gmt_url = "http://download.baderlab.org/EM_Genesets/current_release/Human/symbol/"
+
+#list all the files on the server
+filenames = RCurl::getURL(gmt_url)
+tc = textConnection(filenames)
+contents = readLines(tc)
+close(tc)
+
+#get the gmt that has all the pathways and does not include terms inferred from electronic annotations(IEA)
+#start with gmt file that has pathways only
+rx = gregexpr("(?<=<a href=\")(.*.GOBP_AllPathways_no_GO_iea.*.)(.gmt)(?=\">)",
+  contents, perl = TRUE)
+gmt_file = unlist(regmatches(contents, rx))
+
+dest_gmt_file <- file.path(multi_em_dir,gmt_file )
+
+download.file(
+    paste(gmt_url,gmt_file,sep=""),
+    destfile=dest_gmt_file
+)
+
+
+```
+
+## Run GSEA
+(GSEA)[http://software.broadinstitute.org/gsea/index.jsp] is a stand alone java program with many customizable options.  It can be easily run through its integrated user interface.  To make this a seemless pipeline we can run GSEA from the command line with a set of options.  Any of the supplied options can be customized and there are many additional options that can be specified.  For more details see (here)[http://software.broadinstitute.org/gsea/doc/GSEAUserGuideTEXT.htm#_Running_GSEA_from]
+
+In the below command the following options have been specified:
+
+ * rnk - path to the rank file
+ * gmx - path to the gene set definition (gmt) file
+ * collapse - true/false indicates whether the expression/rnk file needs to be collapsed from probes to gene symbols
+ * nperm - number of permutations
+ * permute - permute gene sets or phentoypes.  For GSEA preranked you can only permute genesets.
+ * scoring_scheme - 
+ * rpt_label - name of the directory with output
+ * num - number of results to plot output file for
+ * rnd_seed - random seed to use
+ * set_max - maximum size for individual gene sets.  In GSEA interface this is set to 500 but we prefer to use a more stringent setting of 200. 
+ * set_min - minimum size for individual gene sets 
+ * zip_report - true/false to zip output directory
+ * out - directory where to place the result directory.
+ * gui - true/false. When running GSEA from the commandline this needs to be false.
+
+If you are using GSEA 4.0.2 you will need to update your system to use Java 11.  The GSEA command line interface has changed slightly in this version of GSEA.  Instead of launching GSEA using java you need to use one of the scripts supplied by GSEA.  (gsea-cli.bat for Windows and gsea-cli.sh for Mac or linux systems).  
+
+In the GSEA 4.0.2 command the following options can been specified:
+
+ * rnk - path to the rank file
+ * gmx - path to the gene set definition (gmt) file
+ * collapse - true/false indicates whether the expression/rnk file needs to be collapsed from probes to gene symbols
+ * nperm - number of permutations
+ * scoring_scheme - 
+ * rpt_label - name of the directory with output
+ * rnd_seed - random seed to use
+ * set_max - maximum size for individual gene sets.  In GSEA interface this is set to 500 but we prefer to use a more stringent setting of 200. 
+ * set_min - minimum size for individual gene sets 
+ * zip_report - true/false to zip output directory
+ * out - directory where to place the result directory.
+
+If you have encounter an out of memory error you will need to open you gsea-cli script and manually update your xmx parameter (more information on this can be found in the GSEA_4.0.2/README file)
+ 
+```{r run GSEA, message=FALSE, warning=FALSE}
+
+#run GSEA for each of the rank files.
+for(i in 1:length(rank_files)){
+    current_rank_file <- rank_files[i]
+    
+    analysis_name <- unlist(strsplit(rank_files[i],split = "_"))[1]
+    #if you are using GSEA 4.0.2 then you need to use the command script
+    # as opposed to launching GSEA through java. 
+    # in the later version of GSEA command line implementation the following 
+    # parameters are no longer valid: -permute gene_set,  -num 100, -gui false
+    # no longer need to specify the whole path to the GseaPreranked package
+    if(run_gsea && java_version == "11"){
+      command <- paste("",gsea_jar,  "GSEAPreRanked -gmx ", dest_gmt_file, "-rnk" ,file.path(working_dir,current_rank_file ), "-collapse false -nperm 1000 -scoring_scheme weighted -rpt_label ",analysis_name,"  -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,working_dir, " > gsea_output.txt",sep=" ")
+      system(command)
+    } else {
+      command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", dest_gmt_file, "-rnk" ,file.path(working_dir,current_rank_file ), "-collapse false -nperm 1000 -permute gene_set -scoring_scheme weighted -rpt_label ",analysis_name,"  -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,working_dir, "-gui false > gsea_output.txt",sep=" ")
+      system(command)
+    }
+}
+```
+
+## Launch Cytoscape
+Create EM through Cyrest interface - make sure you open cytoscape with a -R 1234 (to enable rest functionality) and allow R to talk directly to cytoscape.
+
+Launch Cytoscape (by default cytoscape will automatically enable rest so as long as cytoscape 3.3 or higher is open R should be able to communicate with it)  
+
+## Set up connection from R to cytoscape 
+```{r initialize cytoscape connection}
+# Basic settings
+port.number = 1234
+base.url = paste("http://localhost:", toString(port.number), "/v1", sep="")
+
+#print(base.url)
+
+version.url = paste(base.url, "version", sep="/")
+cytoscape.open = TRUE
+
+tryCatch(expr = { GET(version.url)}, 
+         error = function(e) { return (cytoscape.open = FALSE)}, finally =function(r){ return(cytoscape.open = TRUE)})
+         
+if(!cytoscape.open){
+  #try and launch cytoscape
+ print("Cytoscape is not open.  Please launch cytoscape.")
+} else{
+  cytoscape.version =  httr::GET(version.url)
+  cy.version = RJSONIO::fromJSON(rawToChar(cytoscape.version$content))
+  print(cy.version)
+  
+}
+
+```
+
+```{r cytoscpae_init, include=FALSE}
+#initialize cytoscape
+#create a new session in Cytoscape. 
+cytoscape_session_filename_base <- paste("Multi_dataset_em","cytoscape_session.cys",sep="_")
+cytoscape_session_name_host <- file.path(multi_em_dir, 
+                                         cytoscape_session_filename_base)
+
+#clear the previous session
+RCy3::closeSession(save.before.closing = FALSE)
+
+#save the empty session with the above name
+RCy3::saveSession(cytoscape_session_name_host)
+
+```
+
+
+## Create a multi dataset EM
+```{r create enrichment map}
+
+#defined threshold for GSEA enrichments (need to be strings for cyrest call)
+pvalue_gsea_threshold <- params$pval_thresh
+qvalue_gsea_threshold <- params$fdr_thresh
+
+similarity_threshold <- "0.375"
+similarity_metric = "COMBINED"
+
+cur_model_name <- "Multi_dataset_EM"
+
+gsea_results_path <- multi_em_dir
+
+#although there is a gmt file in the gsea edb results directory it have been filtered to 
+#contain only genes represented in the expression set.  If you use this fltered file you 
+#will get different pathway connectivity depending on the dataset being used.  We recommend 
+#using original gmt file used for the gsea analysis and not the filtered one in the results directory.
+gmt_gsea_file <- file.path(getwd(),dest_gmt_file)
+gsea_root_dir <- file.path(getwd(),multi_em_dir)
+
+#######################################
+#create EM
+current_network_name <- paste(cur_model_name,pvalue_gsea_threshold,qvalue_gsea_threshold,sep="_")
+
+em_command = paste('enrichmentmap mastermap commonGMTFile=',gmt_gsea_file,
+                   'pvalue=',pvalue_gsea_threshold, 'qvalue=',qvalue_gsea_threshold,
+                   'similaritycutoff=',similarity_threshold,
+                   'coefficients=',similarity_metric,'rootFolder=', 
+                   gsea_root_dir,
+                   'filterByExpressions=false',
+                   'commonExpressionFile=',file.path(getwd(),params$expression_file),
+                   sep=" ")
+
+#enrichment map command will return the suid of newly created network.
+response <- RCy3::commandsGET(em_command)
+
+current_network_suid <- 0
+#enrichment map command will return the suid of newly created network unless it Failed.  
+#If it failed it will contain the word failed
+if(grepl(pattern="Failed", response)){
+  paste(response)
+} else {
+  current_network_suid <- response
+}
+
+#check to see if the network name is unique
+current_names <- RCy3::getNetworkList()
+if(current_network_name %in% current_names){
+  #if the name already exists in the network names then put the SUID in front
+  # of the name (this does not work if you put the suid at the end of the name)
+  current_network_name <- paste(current_network_suid,current_network_name,  sep="_")
+}
+response <- RCy3::renameNetwork(title=current_network_name, 
+                          network = as.numeric(current_network_suid),base.url)
+
+
+```
+
+## Change the coloring on the network
+
+By default the network will colour each section of the pie using the NES value (GSEA analysis) and FDR value for any other analysis.  This doesn't let you see clearly which pathways are significant in each dataset.  By changing the colouring type to "DATA_SET" each node will only be coloured if the pathway is significant in the given dataset (by the user defined thresholds).
+
+** The colours are set by default.  There is no progrommatic way to change the colours.  It can be done manually though.**
+
+```{r}
+response <- RCy3::commandsGET('enrichmentmap chart data="DATA_SET"')
+```
+
+
+## Define themes
+
+Annotate the Enrichment map in order to calculate the themes
+
+```{r}
+response <- RCy3::commandsGET(paste('autoannotate annotate-clusterBoosted network=',current_network_suid,sep=""))
+```
+
+
+## Create a summary network
+
+```{r}
+theme_network <- as.numeric(RCy3::commandsGET(paste('autoannotate summary network=', current_network_suid,sep="")))
+```
+
+## Get all the theme information
+
+Depending on the data type of the node attributes when the theme network is created they will be collapsed differently.  You can set this behaviour manually in cytoscape from Edit -> Preference -> Group Preferences.  For more info on this see [here](http://manual.cytoscape.org/en/stable/Cytoscape_Preferences.html#managing-group-settings)
+
+```{r}
+  default_node_table <- RCy3::getTableColumns(table= "node",network = theme_network)
+```
+
+
+## Output all Themes found in all the datasets
+
+```{r}
+
+num_datasets <- length(rank_files)
+
+dataset_chart <- t(sapply(default_node_table$`EnrichmentMap::Dataset_Chart`, function (x) { return (x)}))
+rownames(dataset_chart) <- default_node_table$name
+
+#calculate the number of datasets for each theme
+dataset_per_theme <- rowSums(dataset_chart)
+
+#output the themes that are found in the most datasets
+rownames(dataset_chart)[which(dataset_per_theme == max(dataset_per_theme))]
+```
+
+## Output the pathways specific to each dataset
+```{r}
+#Go through each index of the dataset chart and output the pathways specific for each group
+specific_to_theme_summary <- list()
+for(i in 1:dim(dataset_chart)[2]){
+  current_dataset <- i
+  
+  specific_to_theme_summary[[i]] <- rownames(dataset_chart)[intersect(which(dataset_per_theme == 1) , which(dataset_chart[,i]==1))]
+}
+
+#unfortunately there is no way currently to get which id corresponds to which dataset.  Guess which according to 
+# the order of the columns in the returned table.
+names(specific_to_theme_summary) <- unlist(lapply(colnames(default_node_table)[grep(colnames(default_node_table),pattern="pvalue")],FUN=function(x){unlist(strsplit(x, split =" "))[2]}))
+
+specific_to_theme_summary
+
+```
+
