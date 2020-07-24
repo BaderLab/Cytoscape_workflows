@@ -26,16 +26,16 @@ output:
       smooth_scroll: no
 params:
   analysis_name: Mesen_vs_Immuno
+  working_dir: ./data/
+  rnk_file: Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk
   classes_file: Supplementary_Table9_TCGA_OV_RNAseq_classes.cls
   expression_file: Supplementary_Table6_TCGA_OV_RNAseq_expression.txt
-  fdr_thresh: 0.01
+  run_gsea: yes
+  gsea_jar: /Users/ruthisserlin/Downloads/GSEA_4.0.3/gsea-cli.sh
   gsea_directory: ''
-  gsea_jar: /Users/ruthisserlin/Downloads/GSEA_4.0.2/gsea-cli.sh
-  java_version: 11
+  fdr_thresh: 0.01
   pval_thresh: 1
-  rnk_file: Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk
-  run_gsea: no
-  working_dir: ./data/
+  java_version: 11
 ---
 
 # Materials
@@ -66,25 +66,21 @@ tryCatch(expr = { library("RCurl")},
          finally = library("RCurl"))
 
 #use library
-tryCatch(expr = { library("limma")}, 
-         error = function(e) { source("https://bioconductor.org/biocLite.R")
-           biocLite("limma")}, 
-         finally = library("limma"))
-tryCatch(expr = { library("Biobase")}, 
-         error = function(e) { source("https://bioconductor.org/biocLite.R")
-           biocLite("Biobase")}, 
-         finally = library("Biobase"))
+#make sure biocManager is installed
+tryCatch(expr = { library("BiocManager")}, 
+         error = function(e) { 
+           install.packages("BiocManager")}, 
+         finally = library("BiocManager"))
+
 tryCatch(expr = { library("ggplot2")}, 
          error = function(e) { install.packages("ggplot2")}, 
          finally = library("ggplot2"))
 
-#For creating json and communicating with cytoscape
-tryCatch(expr = { library("httr")}, 
-         error = function(e) { install.packages("httr")}, 
-         finally = library("httr"))
-tryCatch(expr = { library("RJSONIO")}, 
-         error = function(e) { install.packages("RJSONIO")}, 
-         finally = library("RJSONIO"))
+#use easy cyRest library to communicate with cytoscape.
+tryCatch(expr = { library("RCy3")}, 
+         error = function(e) { BiocManager::install("RCy3")}, 
+         finally = library("RCy3"))
+
 
 ```
 ***
@@ -124,7 +120,7 @@ classes_file <- params$classes_file
 ## Download the latest pathway definition file
 Only Human, Mouse and Rat gene set files are currently available on the baderlab downloads site.  If you are working with a species other than human (and it is either rat or mouse) change the gmt_url below to correct species. Check [here](http://download.baderlab.org/EM_Genesets/current_release/) to see all available species. 
 
-```{r download baderlab gmt file}
+```{r download baderlab gmt file, message=FALSE, warning=FALSE, include=FALSE}
 gmt_url = "http://download.baderlab.org/EM_Genesets/current_release/Human/symbol/"
 
 #list all the files on the server
@@ -197,7 +193,7 @@ If you have encounter an out of memory error you will need to open you gsea-cli 
 if(run_gsea && java_version == "11"){
   command <- paste("",gsea_jar,  "GSEAPreRanked -gmx", dest_gmt_file, "-rnk" ,file.path(working_dir,rnk_file), "-collapse false -nperm 1000 -scoring_scheme weighted -rpt_label ",analysis_name,"  -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,working_dir, " > gsea_output.txt",sep=" ")
   system(command)
-} else {
+} else if (run_gsea) {
   command <- paste("java  -Xmx1G -cp",gsea_jar,  "xtools.gsea.GseaPreranked -gmx", dest_gmt_file, "-rnk" ,file.path(working_dir,rnk_file), "-collapse false -nperm 1000 -permute gene_set -scoring_scheme weighted -rpt_label ",analysis_name,"  -num 100 -plot_top_x 20 -rnd_seed 12345  -set_max 200 -set_min 15 -zip_report false -out" ,working_dir, "-gui false > gsea_output.txt",sep=" ")
   system(command)
 }
@@ -225,42 +221,17 @@ if(gsea_directory == ""){
 ***
 
 ## Launch Cytoscape
-Create EM through Cyrest interface - make sure you open cytoscape with a -R 1234 (to enable rest functionality) and allow R to talk directly to cytoscape.
 
-Launch Cytoscape (by default cytoscape will automatically enable rest so as long as cytoscape 3.3 or higher is open R should be able to communicate with it)  
+Launch Cytoscape (by default cytoscape will automatically enable rest so as long as cytoscape 3.3 or higher is open R should be able to communicate with it).  Make sure if you get an message asking you if you want communicate with other apps that you select "Allow".  
 
-## Set up connection from R to cytoscape 
+## Make sure you can connect to Cytoscape
 ```{r initialize cytoscape connection}
-# Basic settings
-port.number = 1234
-base.url = paste("http://localhost:", toString(port.number), "/v1", sep="")
-
-#print(base.url)
-
-version.url = paste(base.url, "version", sep="/")
-cytoscape.open = TRUE
-
-tryCatch(expr = { GET(version.url)}, 
-         error = function(e) { return (cytoscape.open = FALSE)}, finally =function(r){ return(cytoscape.open = TRUE)})
-         
-if(!cytoscape.open){
-  #try and launch cytoscape
- print("Cytoscape is not open.  Please launch cytoscape.")
-} else{
-  cytoscape.version =  GET(version.url)
-  cy.version = fromJSON(rawToChar(cytoscape.version$content))
-  print(cy.version)
-  
-}
-
+    cytoscapePing ()
+    cytoscapeVersionInfo ()
 ```
 ***
 ## Create an Enrichment map
 ```{r create enrichment map}
-#use easy cyRest library to communicate with cytoscape.
-tryCatch(expr = { library("RCy3")}, 
-         error = function(e) { source("https://bioconductor.org/biocLite.R")
-           biocLite("RCy3")}, finally = library("RCy3"))
 
 #defined threshold for GSEA enrichments (need to be strings for cyrest call)
 pvalue_gsea_threshold <- params$pval_thresh

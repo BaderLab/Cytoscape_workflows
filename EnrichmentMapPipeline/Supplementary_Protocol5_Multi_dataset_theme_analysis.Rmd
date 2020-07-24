@@ -4,10 +4,10 @@ author: "Ruth Isserlin"
 date: "`r format(Sys.Date())`"
 params:
   working_dir: data
-  run_gsea: FALSE
+  run_gsea: TRUE
   gsea_directory: ''
   expression_file: data/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt
-  gsea_jar: /Users/ruthisserlin/Downloads/GSEA_4.0.2/gsea-cli.sh
+  gsea_jar: /Users/ruthisserlin/Downloads/GSEA_4.0.3/gsea-cli.sh
   java_version: 11
   pval_thresh: 1
   fdr_thresh: 0.0001
@@ -48,9 +48,11 @@ if(!requireNamespace("RCy3", quietly = TRUE)){
 }
 
 if(!requireNamespace("RCurl", quietly = TRUE)){
-  install.packages("Rcurl")
+  install.packages("RCurl")
 }
 
+library(RCy3)
+library(RCurl)
 ```
 
 
@@ -77,32 +79,6 @@ run_gsea = params$run_gsea
 ```
 
 
-Get all the rank files in the working directory
-```{r}
-rank_files <- list.files(working_dir)[grep(pattern = "ranks.rnk",list.files(working_dir))]
-```
-
-Create a directory to hold the pathway analysis folders.  
-
-** This is an important step. In order for Enrichment map to create a multi dataset map the assumption is that all the results files will be together in a directory where each sub directory is an individual analysis **
-
-```{r}
-
-multi_em_dir <- file.path(working_dir,"Multi_dataset_EM_analysis")
-if(!dir.exists(multi_em_dir )){
-  dir.create(multi_em_dir)
-}
-
-# copy the rank files to the new directory - if they aren't already there
-if(!file.exists(file.path(multi_em_dir))){
-  file.copy(file.path(working_dir, rank_files), file.path(multi_em_dir,rank_files))
-}
-
-#after the files are copied over change the working dir to the newly 
-# create directory
-working_dir <- multi_em_dir
-```
-
 ## Download the latest pathway definition file
 Only Human, Mouse and Rat gene set files are currently available on the baderlab downloads site.  If you are working with a species other than human (and it is either rat or mouse) change the gmt_url below to correct species. Check [here](http://download.baderlab.org/EM_Genesets/current_release/) to see all available species. 
 
@@ -121,7 +97,7 @@ rx = gregexpr("(?<=<a href=\")(.*.GOBP_AllPathways_no_GO_iea.*.)(.gmt)(?=\">)",
   contents, perl = TRUE)
 gmt_file = unlist(regmatches(contents, rx))
 
-dest_gmt_file <- file.path(multi_em_dir,gmt_file )
+dest_gmt_file <- file.path(working_dir,gmt_file )
 
 download.file(
     paste(gmt_url,gmt_file,sep=""),
@@ -130,6 +106,37 @@ download.file(
 
 
 ```
+
+Get all the rank files in the working directory
+```{r}
+rank_files <- list.files(working_dir)[grep(pattern = "ranks.rnk",list.files(working_dir))]
+```
+
+Create a directory to hold the pathway analysis folders.  
+
+** This is an important step. In order for Enrichment map to create a multi dataset map the assumption is that all the results files will be together in a directory where each sub directory is an individual analysis **
+
+```{r}
+
+multi_em_dir <- file.path(working_dir,"Multi_dataset_EM_analysis")
+if(!dir.exists(multi_em_dir )){
+  dir.create(multi_em_dir)
+} else {
+  multi_em_dir <- file.path(working_dir,paste("Multi_dataset_EM_analysis",Sys.Date(),sep = "_"))
+  dir.create(multi_em_dir)
+}
+
+# copy the rank files to the new directory - if they aren't already there
+if(length(list.files(multi_em_dir,pattern=".rnk")) == 0){
+  file.copy(file.path(working_dir, rank_files), file.path(multi_em_dir,rank_files))
+}
+
+#after the files are copied over change the working dir to the newly 
+# create directory
+working_dir <- multi_em_dir
+```
+
+
 
 ## Run GSEA
 (GSEA)[http://software.broadinstitute.org/gsea/index.jsp] is a stand alone java program with many customizable options.  It can be easily run through its integrated user interface.  To make this a seemless pipeline we can run GSEA from the command line with a set of options.  Any of the supplied options can be customized and there are many additional options that can be specified.  For more details see (here)[http://software.broadinstitute.org/gsea/doc/GSEAUserGuideTEXT.htm#_Running_GSEA_from]
@@ -198,27 +205,8 @@ Launch Cytoscape (by default cytoscape will automatically enable rest so as long
 
 ## Set up connection from R to cytoscape 
 ```{r initialize cytoscape connection}
-# Basic settings
-port.number = 1234
-base.url = paste("http://localhost:", toString(port.number), "/v1", sep="")
-
-#print(base.url)
-
-version.url = paste(base.url, "version", sep="/")
-cytoscape.open = TRUE
-
-tryCatch(expr = { GET(version.url)}, 
-         error = function(e) { return (cytoscape.open = FALSE)}, finally =function(r){ return(cytoscape.open = TRUE)})
-         
-if(!cytoscape.open){
-  #try and launch cytoscape
- print("Cytoscape is not open.  Please launch cytoscape.")
-} else{
-  cytoscape.version =  httr::GET(version.url)
-  cy.version = RJSONIO::fromJSON(rawToChar(cytoscape.version$content))
-  print(cy.version)
-  
-}
+   cytoscapePing ()
+    cytoscapeVersionInfo ()
 
 ```
 
