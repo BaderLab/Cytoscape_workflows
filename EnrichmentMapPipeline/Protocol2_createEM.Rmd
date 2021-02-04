@@ -30,12 +30,14 @@ params:
   rnk_file: Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk
   classes_file: Supplementary_Table9_TCGA_OV_RNAseq_classes.cls
   expression_file: Supplementary_Table6_TCGA_OV_RNAseq_expression.txt
-  run_gsea: yes
-  gsea_jar: /Users/ruthisserlin/Downloads/GSEA_4.0.3/gsea-cli.sh
+  run_gsea: true
+  gsea_jar: /home/rstudio/GSEA_4.1.0/gsea-cli.sh
   gsea_directory: ''
   fdr_thresh: 0.01
   pval_thresh: 1
   java_version: 11
+  is_docker: true
+  host_machine_dir: /Users/ruthisserlin/fake_em_dir/Cytoscape_workflows
 ---
 
 # Materials
@@ -115,6 +117,8 @@ rnk_file <- params$rnk_file
 expression_file <- params$expression_file
 classes_file <- params$classes_file
 
+is_docker <- params$is_docker
+host_machine_dir <- params$host_machine_dir
 ```
 
 ## Download the latest pathway definition file
@@ -252,6 +256,30 @@ gsea_results_filename <- file.path(gsea_results_path,"results.edb")
 gmt_gsea_file <- file.path(getwd(),dest_gmt_file)
 gsea_ranks_file <- file.path(gsea_results_path,list.files(gsea_results_path,pattern=".rnk"))
 
+expression_file_fullpath <- file.path(getwd(),working_dir,expression_file)
+
+#if using docker we need to replace all the the paths to the host path
+if(is_docker){
+  
+  #we went to replace the parent directory - assuming we are running workflow
+  # notebook that is in a sub directory of the maing workflows directory
+  # that we mapped -won't need if only mapped EnrichmentMapPipeline directory
+  docker_dir <- dirname(getwd()) 
+  
+  expression_file_fullpath <- gsub(pattern = docker_dir,
+                                   replacement = host_machine_dir,
+                                  expression_file_fullpath)
+  gmt_gsea_file <- gsub(pattern = docker_dir,
+                                   replacement = host_machine_dir,
+                                  gmt_gsea_file)
+  gsea_results_path_host <- gsub(pattern=docker_dir,
+                                   replacement = host_machine_dir,
+    gsea_results_path
+  ) 
+  gsea_ranks_file <- file.path(gsea_results_path_host,list.files(gsea_results_path,pattern=".rnk"))
+  gsea_results_filename <- file.path(gsea_results_path_host,"results.edb")
+}
+
 #######################################
 #create EM
 current_network_name <- paste(cur_model_name,pvalue_gsea_threshold,qvalue_gsea_threshold,sep="_")
@@ -259,10 +287,12 @@ current_network_name <- paste(cur_model_name,pvalue_gsea_threshold,qvalue_gsea_t
 em_command = paste('enrichmentmap build analysisType="gsea" gmtFile=',gmt_gsea_file,
                    'pvalue=',pvalue_gsea_threshold, 'qvalue=',qvalue_gsea_threshold,
                    'similaritycutoff=',similarity_threshold,
-                   'coefficients=',similarity_metric,'ranksDataset1=', 
-                   gsea_ranks_file,'enrichmentsDataset1=',gsea_results_filename, 
+                   'coefficients=',similarity_metric,
+                   'ranksDataset1=', gsea_ranks_file,
+                   'enrichmentsDataset1=',gsea_results_filename, 
                    'filterByExpressions=false',
-                   'expressionDataset1=',file.path(getwd(),working_dir,expression_file),
+                   'expressionDataset1=',expression_file_fullpath,
+                   'gmtFile=',gmt_gsea_file,
                    sep=" ")
 
 #enrichment map command will return the suid of newly created network.
@@ -285,7 +315,7 @@ if(current_network_name %in% current_names){
   current_network_name <- paste(current_network_suid,current_network_name,  sep="_")
 }
 response <- renameNetwork(title=current_network_name, 
-                          network = as.numeric(current_network_suid),base.url)
+                          network = as.numeric(current_network_suid))
 
 
 ```
@@ -296,6 +326,13 @@ response <- renameNetwork(title=current_network_name,
 fitContent()
 
 output_network_file <- file.path(getwd(),"initial_screenshot_network.png")
+output_network_file_current <- output_network_file
+
+if(is_docker){
+  output_network_file <- gsub(pattern=docker_dir,
+                              replacement = host_machine_dir,
+                              output_network_file)
+}
 
 if(file.exists(output_network_file)){
   #cytoscape hangs waiting for user response if file already exists.  Remove it first
@@ -307,7 +344,7 @@ response <- exportImage(output_network_file, type = "png")
 ```
 
 ```{r}
-htmltools::img(src = knitr::image_uri(output_network_file), 
+htmltools::img(src = knitr::image_uri(output_network_file_current), 
                alt = 'Initial Enrichment Map', 
                style = 'margin:0px auto;display:block')
 ```
