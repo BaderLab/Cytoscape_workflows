@@ -37,7 +37,6 @@ params:
   pval_thresh: 1
   java_version: 11
   is_docker: true
-  host_machine_dir: /Users/ruthisserlin/fake_em_dir/Cytoscape_workflows
 ---
 
 # Materials
@@ -83,6 +82,10 @@ tryCatch(expr = { library("RCy3")},
          error = function(e) { BiocManager::install("RCy3")}, 
          finally = library("RCy3"))
 
+tryCatch(expr = { library("httr")}, 
+         error = function(e) { BiocManager::install("httr")}, 
+         finally = library("httr"))
+
 
 ```
 ***
@@ -118,7 +121,6 @@ expression_file <- params$expression_file
 classes_file <- params$classes_file
 
 is_docker <- params$is_docker
-host_machine_dir <- params$host_machine_dir
 ```
 
 ## Download the latest pathway definition file
@@ -234,8 +236,8 @@ Launch Cytoscape (by default cytoscape will automatically enable rest so as long
     cytoscapeVersionInfo ()
 ```
 ***
-## Create an Enrichment map
-```{r create enrichment map}
+## Create an Enrichment map - prepare EM params
+```{r create enrichment map params}
 
 #defined threshold for GSEA enrichments (need to be strings for cyrest call)
 pvalue_gsea_threshold <- params$pval_thresh
@@ -259,26 +261,29 @@ gsea_ranks_file <- file.path(gsea_results_path,list.files(gsea_results_path,patt
 expression_file_fullpath <- file.path(getwd(),working_dir,expression_file)
 
 #if using docker we need to replace all the the paths to the host path
-if(is_docker){
+if(is_docker) {
+  upload_em_file <- function(localPath) {
+    bname <- basename(localPath)
+    r <- POST(
+      url = paste('http://localhost:1234/enrichmentmap/textfileupload?fileName=', bname, sep=""),
+      config = list(),
+      body = list(file = upload_file(localPath)),
+      encode = "multipart",
+      handle = NULL
+    )
+    content(r,"parsed")$path
+  }
   
-  #we went to replace the parent directory - assuming we are running workflow
-  # notebook that is in a sub directory of the maing workflows directory
-  # that we mapped -won't need if only mapped EnrichmentMapPipeline directory
-  docker_dir <- dirname(getwd()) 
-  
-  expression_file_fullpath <- gsub(pattern = docker_dir,
-                                   replacement = host_machine_dir,
-                                  expression_file_fullpath)
-  gmt_gsea_file <- gsub(pattern = docker_dir,
-                                   replacement = host_machine_dir,
-                                  gmt_gsea_file)
-  gsea_results_path_host <- gsub(pattern=docker_dir,
-                                   replacement = host_machine_dir,
-    gsea_results_path
-  ) 
-  gsea_ranks_file <- file.path(gsea_results_path_host,list.files(gsea_results_path,pattern=".rnk"))
-  gsea_results_filename <- file.path(gsea_results_path_host,"results.edb")
+  # "upload" the files to the host machine and replace each path with the host machine path
+  expression_file_fullpath <- upload_em_file(expression_file_fullpath)
+  gmt_gsea_file <- upload_em_file(gmt_gsea_file)
+  gsea_ranks_file <- upload_em_file(gsea_ranks_file)
+  gsea_results_filename <- upload_em_file(gsea_results_filename)
 }
+```
+***
+## Create an Enrichment map - run EM command
+```{r create enrichment map}
 
 #######################################
 #create EM
@@ -325,26 +330,7 @@ response <- renameNetwork(title=current_network_name,
 
 fitContent()
 
-output_network_file <- file.path(getwd(),"initial_screenshot_network.png")
-output_network_file_current <- output_network_file
+commandsGET("enrichmentmap export png")
 
-if(is_docker){
-  output_network_file <- gsub(pattern=docker_dir,
-                              replacement = host_machine_dir,
-                              output_network_file)
-}
 
-if(file.exists(output_network_file)){
-  #cytoscape hangs waiting for user response if file already exists.  Remove it first
-  response <- file.remove(output_network_file)
-} 
-
-response <- exportImage(output_network_file, type = "png")
-
-```
-
-```{r}
-htmltools::img(src = knitr::image_uri(output_network_file_current), 
-               alt = 'Initial Enrichment Map', 
-               style = 'margin:0px auto;display:block')
 ```
