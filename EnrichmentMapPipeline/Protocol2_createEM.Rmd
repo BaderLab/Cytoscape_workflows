@@ -30,8 +30,8 @@ params:
   rnk_file: Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk
   classes_file: Supplementary_Table9_TCGA_OV_RNAseq_classes.cls
   expression_file: Supplementary_Table6_TCGA_OV_RNAseq_expression.txt
-  run_gsea: true
-  gsea_jar: /home/rstudio/GSEA_4.1.0/gsea-cli.sh
+  run_gsea: no
+  gsea_jar: /home/rstudio/GSEA_4.3.2/gsea-cli.sh
   gsea_directory: ''
   fdr_thresh: 0.01
   pval_thresh: 1
@@ -81,12 +81,16 @@ tryCatch(expr = { library("ggplot2")},
 tryCatch(expr = { library("RCy3")}, 
          error = function(e) { BiocManager::install("RCy3")}, 
          finally = library("RCy3"))
-
 tryCatch(expr = { library("httr")}, 
          error = function(e) { BiocManager::install("httr")}, 
          finally = library("httr"))
 
-
+if(params$is_docker){
+  current_base = "host.docker.internal:1234/v1"
+  .defaultBaseUrl <- "http://host.docker.internal:1234/v1"
+} else{
+  current_base = "localhost:1234/v1"
+}
 ```
 ***
 
@@ -232,12 +236,12 @@ Launch Cytoscape (by default cytoscape will automatically enable rest so as long
 
 ## Make sure you can connect to Cytoscape
 ```{r initialize cytoscape connection}
-    cytoscapePing ()
-    cytoscapeVersionInfo ()
+    cytoscapePing (base.url = current_base)
+    cytoscapeVersionInfo (base.url = current_base)
 ```
 ***
-## Create an Enrichment map - prepare EM params
-```{r create enrichment map params}
+## Create an Enrichment map
+```{r create enrichment map}
 
 #defined threshold for GSEA enrichments (need to be strings for cyrest call)
 pvalue_gsea_threshold <- params$pval_thresh
@@ -265,7 +269,7 @@ if(is_docker) {
   upload_em_file <- function(localPath) {
     bname <- basename(localPath)
     r <- POST(
-      url = paste('http://localhost:1234/enrichmentmap/textfileupload?fileName=', bname, sep=""),
+      url = paste('http://host.docker.internal:1234/enrichmentmap/textfileupload?fileName=', bname, sep=""),
       config = list(),
       body = list(file = upload_file(localPath)),
       encode = "multipart",
@@ -301,7 +305,7 @@ em_command = paste('enrichmentmap build analysisType="gsea" gmtFile=',gmt_gsea_f
                    sep=" ")
 
 #enrichment map command will return the suid of newly created network.
-response <- commandsGET(em_command)
+response <- commandsGET(em_command,base.url = current_base)
 
 current_network_suid <- 0
 #enrichment map command will return the suid of newly created network unless it Failed.  
@@ -313,14 +317,15 @@ if(grepl(pattern="Failed", response)){
 }
 
 #check to see if the network name is unique
-current_names <- getNetworkList()
+current_names <- getNetworkList(base.url = current_base)
 if(current_network_name %in% current_names){
   #if the name already exists in the network names then put the SUID in front
   # of the name (this does not work if you put the suid at the end of the name)
   current_network_name <- paste(current_network_suid,current_network_name,  sep="_")
 }
 response <- renameNetwork(title=current_network_name, 
-                          network = as.numeric(current_network_suid))
+                       network = as.numeric(current_network_suid),base.url = current_base)
+
 
 
 ```
@@ -328,9 +333,20 @@ response <- renameNetwork(title=current_network_name,
 ## Get a screen shot of the initial network.
 ```{r get screenshot}
 
-fitContent()
+#you can only output the file if it isn't on docker
+#on docker is put it into the user's home directory with docker has not access to
+if(!params$is_docker){
+  output_network_file <- file.path(getwd(),"initial_screenshot_network.png")
+  output_network_file_current <- output_network_file
 
-commandsGET("enrichmentmap export png")
+  fitContent()
 
+  if(file.exists(output_network_file)){
+    #cytoscape hangs waiting for user response if file already exists.  Remove it first
+    response <- file.remove(output_network_file)
+  } 
+
+  response <- exportImage(output_network_file, type = "png",base.url = current_base)
+}
 
 ```
