@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 
 <head>
 
 <meta charset="utf-8" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
@@ -15,45 +14,52 @@
 
 <title>Enrichment Map Workflow</title>
 
-<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<script src="site_libs/header-attrs-2.20/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link href="site_libs/bootstrap-3.3.5/css/paper.min.css" rel="stylesheet" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
 <link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
 
-
-
-
 <style type="text/css">
-h1 {
-  font-size: 34px;
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
 }
-h1.title {
-  font-size: 38px;
-}
-h2 {
-  font-size: 30px;
-}
-h3 {
-  font-size: 24px;
-}
-h4 {
-  font-size: 18px;
-}
-h5 {
-  font-size: 16px;
-}
-h6 {
-  font-size: 12px;
-}
-.table th:not([align]) {
-  text-align: left;
-}
-</style>
+</script>
+
+
+
+
+
 
 
 
@@ -63,10 +69,6 @@ h6 {
   max-width: 940px;
   margin-left: auto;
   margin-right: auto;
-}
-code {
-  color: inherit;
-  background-color: rgba(0, 0, 0, 0.04);
 }
 img {
   max-width:100%;
@@ -83,40 +85,16 @@ button.code-folding-btn:focus {
 summary {
   display: list-item;
 }
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
 </style>
 
 
 <style type="text/css">
-/* padding for bootstrap navbar */
-body {
-  padding-top: 64px;
-  padding-bottom: 40px;
-}
-/* offset scroll position for anchor links (for fixed navbar)  */
-.section h1 {
-  padding-top: 69px;
-  margin-top: -69px;
-}
-.section h2 {
-  padding-top: 69px;
-  margin-top: -69px;
-}
-.section h3 {
-  padding-top: 69px;
-  margin-top: -69px;
-}
-.section h4 {
-  padding-top: 69px;
-  margin-top: -69px;
-}
-.section h5 {
-  padding-top: 69px;
-  margin-top: -69px;
-}
-.section h6 {
-  padding-top: 69px;
-  margin-top: -69px;
-}
 .dropdown-submenu {
   position: relative;
 }
@@ -144,7 +122,7 @@ body {
   margin-right: -10px;
 }
 .dropdown-submenu:hover>a:after {
-  border-left-color: #ffffff;
+  border-left-color: #adb5bd;
 }
 .dropdown-submenu.pull-left {
   float: none;
@@ -156,7 +134,7 @@ body {
 }
 </style>
 
-<script>
+<script type="text/javascript">
 // manage active state of menu based on current page
 $(document).ready(function () {
   // active menu anchor
@@ -166,11 +144,28 @@ $(document).ready(function () {
     href = "index.html";
   var menuAnchor = $('a[href="' + href + '"]');
 
-  // mark it active
-  menuAnchor.parent().addClass('active');
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
 
-  // if it's got a parent navbar menu mark it active as well
-  menuAnchor.closest('li.dropdown').addClass('active');
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
 });
 </script>
 
@@ -182,13 +177,12 @@ $(document).ready(function () {
   max-height: 500px;
   min-height: 44px;
   overflow-y: auto;
-  background: white;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
 
-.tabset-dropdown > .nav-tabs > li.active:before {
-  content: "";
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
   font-family: 'Glyphicons Halflings';
   display: inline-block;
   padding: 10px;
@@ -196,16 +190,9 @@ $(document).ready(function () {
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-  content: "&#xe258;";
-  border: none;
-}
-
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-  content: "";
+  content: "\e258";
   font-family: 'Glyphicons Halflings';
-  display: inline-block;
-  padding: 10px;
-  border-right: 1px solid #ddd;
+  border: none;
 }
 
 .tabset-dropdown > .nav-tabs > li.active {
@@ -218,6 +205,7 @@ $(document).ready(function () {
   border: none;
   display: inline-block;
   border-radius: 4px;
+  background-color: transparent;
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li {
@@ -248,7 +236,7 @@ $(document).ready(function () {
 <div class="navbar navbar-inverse  navbar-fixed-top" role="navigation">
   <div class="container">
     <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
@@ -272,7 +260,7 @@ $(document).ready(function () {
   </a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     <span class="fa fa-list"></span>
      
     Table of Contents
@@ -305,7 +293,7 @@ $(document).ready(function () {
   </div><!--/.container -->
 </div><!--/.navbar -->
 
-<div class="fluid-row" id="header">
+<div id="header">
 
 
 
@@ -316,47 +304,125 @@ $(document).ready(function () {
 
 
 <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAABgCAYAAABLwH3pAAAAAXNSR0IArs4c6QAAAAlwSFlzAABcRgAAXEYBFJRDQQAAA9VJREFUeAHtnT1rVEEYhWdcJUEsooVaqIlgZxA/fkJKBcFfoH9CotgKYmlpYXq18aMTJIWNhRZBBSFooaQQQVRik+g4XcqZ95LNmz3vExII3JmdOc+ZBy672WyeXXxeEl8uBEZTa6sHT9475bI4i6ZU0qM9cIBAZAIIELl9sicE4BCEJoAAoesnPAJwBkITQIDQ9RMeATgDoQkgQOj6CY8AnIHQBBAgdP2ERwDOQGgCCBC6fsIjAGcgNAEECF0/4RGAMxCaAAKErp/wCMAZCE0AAULXT3gE4AyEJoAAoesnPAJwBkITQIDQ9RMeATgDoQnsVUtfSnm8Wf7dmoRcUzOvjtd9vpiEvaruUU+AlH+u3b38cRIKO/fg9CilPAlbld0jt0Cy1RKshwAC9FBijCwBBJCtlmA9BBCghxJjZAkggGy1BOshgAA9lBgjSwABZKslWA8BBOihxBhZAgggWy3BegjIvRJcjb44u/hsuSe895hfXz//mDlx33sbodeXE6D+ZcHR+ucF9Wf3f5W/06u7f5faO+QWSLtf0jUIIEADEJe1CSCAdr+kaxBAgAYgLmsTQADtfknXIIAADUBc1iaAANr9kq5BAAEagLisTQABtPslXYMAAjQAcVmbAAJo90u6BgEEaADisjYBBNDul3QNAgjQAMRlbQIIoN0v6RoE9N4P0Agc7XJJpX6nle7cOZ3JKY/n/zWWtFE386FnL3UDR+o2xv6+DgToaWOCx+SSN99ce3e2N8KFpfn1+qai/b3jLeNKTt/eXn3ftZfzS/M3qwS3LY8/ZCy3QEOoMUeGAALIVEmQIQQQYAg15sgQQACZKgkyhAACDKHGHBkCCCBTJUGGEJB7GrQ+6/2wPo13YwiMnZ6z79DybF3z5U6vy3pbBPQESOn3lzuXPm1F3L2/1c8Im+Yzwnz74RbIlz+rOxNAAOcCWN6XAAL48md1ZwII4FwAy/sSQABf/qzuTAABnAtgeV8CCODLn9WdCSCAcwEs70sAAXz5s7ozAblXgnMqc8euP7nizLVr+T/fX88cOPy0ayyDxkNAT4CcF0Z5tDAeXNv7qBvrc3xG2PYiNT8at0BmZExQIoAASm2SxUwAAczImKBEAAGU2iSLmQACmJExQYkAAii1SRYzAQQwI2OCEgEEUGqTLGYCCGBGxgQlAgig1CZZzAQQwIyMCUoEEECpTbKYCSCAGRkTlAgggFKbZDETQAAzMiYoEUAApTbJYiaAAGZkTFAigABKbZLFTAABzMiYoEQAAZTaJIuZAAKYkTFBiQACKLVJFjMBBDAjY4ISgf95TkoQvnPHMgAAAABJRU5ErkJggg==" alt="logo" style="position:absolute; top:0; right:0; padding:65px;"/>
-<p>Set of R notebooks to transform expression data to a ranked list and run them through Pathay enrichment pipeline. Pathway enrichment analysis helps gain mechanistic insight into large gene lists typically resulting from genome scale (–omics) experiments. It identifies biological pathways that are enriched in the gene list more than expected by chance. We explain pathway enrichment analysis and present a practical step-by-step guide to help interpret gene lists. The protocol is designed for biologists with no prior bioinformatics training and uses freely available software including g:Profiler, GSEA, Cytoscape and Enrichment Map.</p>
-<p>The main protocol involves translating a ranked list to an Enrichment map. The figure below outlines the main steps.</p>
+<p>Set of R notebooks to transform expression data to a ranked list and
+run them through Pathay enrichment pipeline. Pathway enrichment analysis
+helps gain mechanistic insight into large gene lists typically resulting
+from genome scale (–omics) experiments. It identifies biological
+pathways that are enriched in the gene list more than expected by
+chance. We explain pathway enrichment analysis and present a practical
+step-by-step guide to help interpret gene lists. The protocol is
+designed for biologists with no prior bioinformatics training and uses
+freely available software including g:Profiler, GSEA, Cytoscape and
+Enrichment Map.</p>
+<p>The main protocol involves translating a ranked list to an Enrichment
+map. The figure below outlines the main steps.</p>
 <div class="figure">
-<img src="Figures/Figure1_Protocol_Flow_Chart.png" alt="EM Protocol Flow Chart" />
+<img src="Figures/Figure1_Protocol_Flow_Chart.png" alt="" />
 <p class="caption">EM Protocol Flow Chart</p>
 </div>
 <div id="table-of-contents" class="section level1">
-<h1><span class="header-section-number">1</span> Table of Contents</h1>
+<h1>Table of Contents</h1>
 <ol style="list-style-type: decimal">
-<li><a href="Download_TCGA_data.html">Download TCGA data</a> - R notebook shows you how to download legacy microarray and rnaseq ovarian cancer data. The notebook can be modified to download any data from GDC</li>
-<li><a href="supplemental_protocol1_rnaseq.html">Supplemental Protocol 1</a> - convert raw RNASeq expression data to a ranked list</li>
-<li><a href="supplemental_protocol2_microarray.html">Supplemental Protocol 2</a> - convert RMA normalized microarray expression data to a ranked list</li>
-<li><a href="supplemental_protocol3_R_gse_methods.html">Supplemental Protocol 3</a> - perform Pathway Enrichment Analysis in R using ROAST and Camera</li>
-<li><a href="Supplemental_protocol_4_manual_phenotype_rand_with_edgeR.html">Supplemental Protocol 4</a> - perform phenotype randomizations using edgeR with GSEA.</li>
-<li><a href="Supplementary_Protocol5_Multi_dataset_theme_analysis.html">Supplemental Protocol 5</a> - Creates a Multi dataset Enrichment Map (using GSEA results from multiple rank files) and followed by Theme calculation and summary.</li>
-<li><a href="Protocol2_createEM.html">Protocol 2</a> - run GSEA on ranked list and automatically create an Enrichment Map from the results.</li>
+<li><a href="Download_TCGA_data.html">Download TCGA data</a> - R
+notebook shows you how to download legacy microarray and rnaseq ovarian
+cancer data. The notebook can be modified to download any data from
+GDC</li>
+<li><a href="supplemental_protocol1_rnaseq.html">Supplemental Protocol
+1</a> - convert raw RNASeq expression data to a ranked list</li>
+<li><a href="supplemental_protocol2_microarray.html">Supplemental
+Protocol 2</a> - convert RMA normalized microarray expression data to a
+ranked list</li>
+<li><a href="supplemental_protocol3_R_gse_methods.html">Supplemental
+Protocol 3</a> - perform Pathway Enrichment Analysis in R using ROAST
+and Camera</li>
+<li><a
+href="Supplemental_protocol_4_manual_phenotype_rand_with_edgeR.html">Supplemental
+Protocol 4</a> - perform phenotype randomizations using edgeR with
+GSEA.</li>
+<li><a
+href="Supplementary_Protocol5_Multi_dataset_theme_analysis.html">Supplemental
+Protocol 5</a> - Creates a Multi dataset Enrichment Map (using GSEA
+results from multiple rank files) and followed by Theme calculation and
+summary.</li>
+<li><a href="Protocol2_createEM.html">Protocol 2</a> - run GSEA on
+ranked list and automatically create an Enrichment Map from the
+results.</li>
+<li><a href="Protocol2_annotateEM.html">Protocol 2 add on</a> - take the
+resulting EM from Protocol 2 and annotate it. Pull all the annotations
+directly into R to be used for further analysis.</li>
 </ol>
 </div>
 <div id="data-files-used-for-the-protocol" class="section level1">
-<h1><span class="header-section-number">2</span> Data Files used for the Protocol</h1>
+<h1>Data Files used for the Protocol</h1>
 <ol style="list-style-type: decimal">
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table1_Cancer_drivers.txt">Supplmentary table 1</a> - Cancer drivers. List of genes used as g:Profiler input.</li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk">Supplmentary table 2</a> - GSEA Rank file. List of genes and their assoicated ranks used as input for GSEA.</li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_July_01_2017_symbol.gmt">Supplmentary table 3</a> - GSEA GMT file. Pathway defintion file used for the protocol as GSEA input. Updated gmt files can be found on the baderlab download site <a href="http://download.baderlab.org/EM_Genesets/current_release/">here</a></li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table4_gprofiler_results.txt">Supplmentary table 4</a> - Example g:Profiler results file.</li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table5_hsapiens.pathways.NAME.gmt">Supplmentary table 5</a> - Example g:Profiler gmt file. If using example g:Profiler results file instead of regenerating the results make sure to use this gmt file. If the g:Profiler results file has been regenerated then make sure to download an updated gmt file that corresponds to the results file as specified in the protocol.<br />
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table1_Cancer_drivers.txt">Supplmentary
+table 1</a> - Cancer drivers. List of genes used as g:Profiler
+input.</li>
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table2_MesenvsImmuno_RNASeq_ranks.rnk">Supplmentary
+table 2</a> - GSEA Rank file. List of genes and their assoicated ranks
+used as input for GSEA.</li>
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table3_Human_GOBP_AllPathways_no_GO_iea_July_01_2017_symbol.gmt">Supplmentary
+table 3</a> - GSEA GMT file. Pathway defintion file used for the
+protocol as GSEA input. Updated gmt files can be found on the baderlab
+download site <a
+href="http://download.baderlab.org/EM_Genesets/current_release/">here</a></li>
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table4_gprofiler_results.txt">Supplmentary
+table 4</a> - Example g:Profiler results file.</li>
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table5_hsapiens.pathways.NAME.gmt">Supplmentary
+table 5</a> - Example g:Profiler gmt file. If using example g:Profiler
+results file instead of regenerating the results make sure to use this
+gmt file. If the g:Profiler results file has been regenerated then make
+sure to download an updated gmt file that corresponds to the results
+file as specified in the protocol.<br />
 </li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt">Supplmentary table 6</a> - Example expression file (corresponding to example rank file, supplementary 2) used when creating an Enrichment Map from GSEA results.<br />
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table6_TCGA_OV_RNAseq_expression.txt">Supplmentary
+table 6</a> - Example expression file (corresponding to example rank
+file, supplementary 2) used when creating an Enrichment Map from GSEA
+results.<br />
 </li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table7_TCGA_OV_RNAseq_classes.cls">Supplmentary table 7</a> - Example class file (corresponding to example expression file, supplementary 6) used when creating an Enrichment Map from GSEA results.</li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table8_gsea_report_for_na_pos.xls">Supplmentary table 8</a> - Example GSEA results file 1.</li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table9_gsea_report_for_na_neg.xls">Supplmentary table 9</a> - Example GSEA results file 2.</li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table10_TCGA_RNASeq_rawcounts.txt">Supplmentary table 10</a> - Example RANSeq expression input file used in Supplementary Protocol 1. File used to generate rank file, supplementary table 2, used in the main protocol.</li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table11_RNASeq_classdefinitions.txt">Supplmentary table 11</a> - Example sample definition input file used in Supplementary Protocol 1. File used to generate rank file, supplementary table 2, used in the main protocol.<br />
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table7_TCGA_OV_RNAseq_classes.cls">Supplmentary
+table 7</a> - Example class file (corresponding to example expression
+file, supplementary 6) used when creating an Enrichment Map from GSEA
+results.</li>
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table8_gsea_report_for_na_pos.xls">Supplmentary
+table 8</a> - Example GSEA results file 1.</li>
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table9_gsea_report_for_na_neg.xls">Supplmentary
+table 9</a> - Example GSEA results file 2.</li>
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table10_TCGA_RNASeq_rawcounts.txt">Supplmentary
+table 10</a> - Example RANSeq expression input file used in
+Supplementary Protocol 1. File used to generate rank file, supplementary
+table 2, used in the main protocol.</li>
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table11_RNASeq_classdefinitions.txt">Supplmentary
+table 11</a> - Example sample definition input file used in
+Supplementary Protocol 1. File used to generate rank file, supplementary
+table 2, used in the main protocol.<br />
 </li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table12_TCGA_Microarray_rmanormalized.txt">Supplmentary table 12</a> - Example Microarray expression input file used in Supplementary Protocol 2.<br />
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table12_TCGA_Microarray_rmanormalized.txt">Supplmentary
+table 12</a> - Example Microarray expression input file used in
+Supplementary Protocol 2.<br />
 </li>
-<li><a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table13_Microarray_classdefinitions.txt">Supplmentary table 13</a> - Example sample definition input file used in Supplementary Protocol 2.</li>
+<li><a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData/Supplementary_Table13_Microarray_classdefinitions.txt">Supplmentary
+table 13</a> - Example sample definition input file used in
+Supplementary Protocol 2.</li>
 </ol>
-<p>Download all the above files <a href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData_EM_Protocol.tar.gz">here</a></p>
-<p>See the <a href="https://github.com/BaderLab/Cytoscape_workflows">GitHub repository</a> for the source.</p>
+<p>Download all the above files <a
+href="/Cytoscape_workflows/EnrichmentMapPipeline/SupplementaryData_EM_Protocol.tar.gz">here</a></p>
+<p>See the <a
+href="https://github.com/BaderLab/Cytoscape_workflows">GitHub
+repository</a> for the source.</p>
 </div>
 
 
@@ -368,7 +434,7 @@ $(document).ready(function () {
 
 // add bootstrap table styles to pandoc tables
 function bootstrapStylePandocTables() {
-  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
 }
 $(document).ready(function () {
   bootstrapStylePandocTables();
@@ -386,7 +452,7 @@ $(document).ready(function () {
 
 $(document).ready(function () {
   $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
+    $(this).parent().toggleClass('nav-tabs-open');
   });
 });
 </script>

@@ -1,0 +1,167 @@
+---
+title: "Enrichment Map Analysis Pipeline - Annotate EM"
+author: "Ruth Isserlin"
+date: "`r format(Sys.Date())`"
+output:
+  html_document:
+params:
+  is_docker: yes
+  add_singletons: yes
+  network_name: Mesen_vs_Immuno_1_0.01
+---
+
+This notebook assumes that you have already created an Enrichment Map, manually or automated (as demonstrated in [https://baderlab.github.io/Cytoscape_workflows/EnrichmentMapPipeline/Protocol2_createEM.html](EM Protocol2_createEM.Rmd) and annotates the network.  After annotating the network it collects the annotations and their associated pathways into a data frame so you can better analyze the results in R. 
+
+Get all required libraries
+```{r}
+#use easy cyRest library to communicate with cytoscape.
+tryCatch(expr = { library("RCy3")}, 
+         error = function(e) { BiocManager::install("RCy3")}, 
+         finally = library("RCy3"))
+```
+
+
+## Connect to Cytoscape
+
+There is a slightly different mechanism to connect to Cytoscape if you are running your R notebook from within docker.  If you are not using docker make sure to change the parameter above.
+
+```{r}
+if(params$is_docker){
+  current_base = "host.docker.internal:1234/v1"
+  .defaultBaseUrl <- "http://host.docker.internal:1234/v1"
+} else{
+  current_base = "localhost:1234/v1"
+}
+```
+
+
+## Make sure you can connect to Cytoscape
+```{r initialize cytoscape connection}
+    cytoscapePing (base.url = current_base)
+    cytoscapeVersionInfo (base.url = current_base)
+```
+
+
+## Select the Network of Interest
+
+The network name is specified in the parameters in this notebook. (You can also specify it directly in the below code block)  
+```{r}
+current_network <- params$network_name
+
+RCy3::setCurrentNetwork(network=current_network, base.url = current_base)
+network_suid <- RCy3::getNetworkSuid(current_network,base.url = current_base)
+```
+
+
+## Cluster and Annotate the network 
+
+Use AutoAnnotate to annotate the network.  After the notebook is annotated get the node and edge table which will contain the clusters that autoannotate used to define the annotations.  By default, autoannotate uses MCL clustering to cluster the network so the below code gets the cluster definitions from the node attribute __mclCluster.  If you choose to use a different clustering algorithm make sure to update the attribute used to define the clusters.  
+
+Go through each cluster and get it associated label and associated pathways.  
+
+This results in two dataframes, annotations2pathways and annotations_summary.  Annotations2pathways is a mapping from annotation label_clusternubmer to pathway.  (the annotation label isn't used by itself as they are not necessarily unique and you can have two clusters with the same label.  To make sure that they are unique we concatenate the cluster number to the label to create a unique identifier).
+
+annotations_summary is a table containing information about the different annoations.  It contains the label_id, label, cluster number, number of pathways and a list of pathways associated with it.  
+
+
+```{r}
+
+## annotate the network 
+
+  #There is an issue with wordcloud not recognizing "-" as a delimiter
+  # use command to add it as a delimiter and also add "pid" as an excluded word
+  wordcloud_url <- paste("wordcloud delimiter add value=\"-\" ","network=SUID:",network_suid, sep="")
+  commandsGET(wordcloud_url,base.url = current_base)
+  
+  #add the set of words to ignore
+  words2ignore <- c("pid",1:10)
+  responses <- lapply(words2ignore,function(x){ wordcloud2_url <- paste("wordcloud ignore add value=\"",x, "\" ","network=SUID:",network_suid, sep="");
+  commandsGET(wordcloud2_url,base.url = current_base)})
+  
+  #get the column from the nodetable and edge table
+  edgetable_colnames <- getTableColumnNames(table="edge",  base.url = current_base)
+  
+  #get the correct attribute names
+  similarity_attrib <- edgetable_colnames[grep(edgetable_colnames, pattern = "similarity_coefficient")]
+  
+  #get the column from the nodetable and node table
+  nodetable_colnames <- getTableColumnNames(table="node",  base.url = current_base)
+  
+  descr_attrib <- nodetable_colnames[grep(nodetable_colnames, pattern = "GS_DESCR")]
+  
+  #make sure it is set to the right network
+  setCurrentNetwork(network = getNetworkName(suid=as.numeric(network_suid),base.url = current_base),base.url = current_base)
+  
+  #annotate the network
+    curernt_name = NULL
+    aa_label_url <- paste("autoannotate annotate-clusterBoosted labelColumn=", descr_attrib," maxWords=3 ", sep="")
+    current_annotations <-commandsGET(aa_label_url,base.url = current_base)
+  
+  default_node_table <- getTableColumns(table= "node",base.url = current_base)
+  default_edge_table <- getTableColumns(table="edge",base.url = current_base)
+  
+  #use the clustering done with the annotations
+  clusternumbers <- default_node_table$`__mclCluster`
+  
+  set_clusters <- unique(clusternumbers)
+  set_clusters <- set_clusters[which(set_clusters != 0)]
+  
+  annotations2pathways <- data.frame(stringsAsFactors = FALSE)
+  annotations_summary <- data.frame(stringsAsFactors = FALSE)
+  
+  #Go through each cluster  
+  for(i in 1:length(set_clusters)){
+    
+    current_cluster <- set_clusters[i]
+    
+    gs_in_cluster <- default_node_table$name[which(default_node_table$`__mclCluster` == current_cluster)]
+    
+    #for this cluster of gs get the gs descr to use in defining in autoannotate
+    gs_in_cluster_suid <-  default_node_table$SUID[which(default_node_table$name %in% gs_in_cluster)]
+    suids_aa <- paste("SUID", gs_in_cluster_suid,sep=":")
+    
+    #annotate the cluster
+    curernt_name = NULL
+    aa_label_url <- paste("autoannotate label-clusterBoosted labelColumn=", descr_attrib," maxWords=3 nodeList=\"",paste(suids_aa,collapse=","),"\"", sep="")
+    current_name <-commandsGET(aa_label_url,base.url = current_base)
+    
+    #add cluster number to name - to get rid of issue with clusters with the same names
+    current_name_id <- paste(current_name,current_cluster,sep="_")
+    
+    #if(is.null(current_name) || is.na(current_name)){
+    #current_name <- gsub("\nFinished\n","",content(response, "text", encoding = "ISO-8859-1"))
+    #  current_name = "No annotation returned"
+    #}
+    
+    annotations2pathways_current <- data.frame( annotation_label=current_name_id, 
+                                               pathways = gs_in_cluster,stringsAsFactors = FALSE)
+    
+    annotations2pathways <- rbind(annotations2pathways, annotations2pathways_current)
+    
+    annotations_summary <- rbind(annotations_summary, c(current_cluster, current_name_id, current_name, length(gs_in_cluster), paste(gs_in_cluster,collapse = ",") ))
+  }
+  
+  #add singletons
+  if(params$add_singletons){
+    singletons <- which(is.na(clusternumbers) | (clusternumbers == 0))
+    for(i in 1:length(singletons)){
+      name_singleton <- default_node_table$name[singletons[i]]
+    
+      annotations2pathways <- rbind(annotations2pathways, c(paste("singleton",i, name_singleton,sep="_"),name_singleton))
+    
+      annotations_summary <- rbind(annotations_summary, c(NA, paste("singleton",i, name_singleton,sep="_"), name_singleton, 1, name_singleton ))
+      
+    }
+  }
+ colnames(annotations_summary) <- c("cluster_number","label_id", "annotation_label","number_nodes_in_cluster", "pathways_in_cluster")
+
+```
+
+
+Sort the annotation summary by the number of nodes in the cluster (similiar to how we see it in the autoannotate panel in Cytoscape.)
+```{r}
+annotations_summary <- annotations_summary[order(as.numeric(annotations_summary$number_nodes_in_cluster),decreasing = TRUE),]
+
+annotations_summary[1:5,1:4]
+```
+

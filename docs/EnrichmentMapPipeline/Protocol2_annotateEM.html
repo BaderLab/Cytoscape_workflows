@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Ruth Isserlin" />
+
+<meta name="date" content="2023-03-22" />
+
+<title>Enrichment Map Analysis Pipeline - Annotate EM</title>
+
+<script src="site_libs/header-attrs-2.20/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-inverse  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Enrichment Map Protocol</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="https://baderlab.github.io/Cytoscape_workflows/">
+    <span class="fa fa-home"></span>
+     
+    Home
+  </a>
+</li>
+<li>
+  <a href="https://www.biorxiv.org/content/early/2017/12/12/232835">
+    <span class="fa fa-newspaper-o"></span>
+     
+    bioRxiv paper
+  </a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="fa fa-list"></span>
+     
+    Table of Contents
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li class="dropdown-header">Supplementary Protocols</li>
+    <li>
+      <a href="Download_TCGA_data.html">Download TCGA Data</a>
+    </li>
+    <li>
+      <a href="supplemental_protocol1_rnaseq.html">Process RNASeq data</a>
+    </li>
+    <li>
+      <a href="supplemental_protocol2_microarray.html">Process Microarray data</a>
+    </li>
+    <li class="divider"></li>
+    <li class="dropdown-header">Protocol 2</li>
+    <li>
+      <a href="Protocol2_createEM.html">Create Enrichment Map</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Enrichment Map Analysis Pipeline - Annotate
+EM</h1>
+<h4 class="author">Ruth Isserlin</h4>
+<h4 class="date">2023-03-22</h4>
+
+</div>
+
+
+<p>This notebook assumes that you have already created an Enrichment
+Map, manually or automated (as demonstrated in <a
+href="EM%20Protocol2_createEM.Rmd">https://baderlab.github.io/Cytoscape_workflows/EnrichmentMapPipeline/Protocol2_createEM.html</a>
+and annotates the network. After annotating the network it collects the
+annotations and their associated pathways into a data frame so you can
+better analyze the results in R.</p>
+<p>Get all required libraries</p>
+<pre class="r"><code>#use easy cyRest library to communicate with cytoscape.
+tryCatch(expr = { library(&quot;RCy3&quot;)}, 
+         error = function(e) { BiocManager::install(&quot;RCy3&quot;)}, 
+         finally = library(&quot;RCy3&quot;))</code></pre>
+<div id="connect-to-cytoscape" class="section level2">
+<h2>Connect to Cytoscape</h2>
+<p>There is a slightly different mechanism to connect to Cytoscape if
+you are running your R notebook from within docker. If you are not using
+docker make sure to change the parameter above.</p>
+<pre class="r"><code>if(params$is_docker){
+  current_base = &quot;host.docker.internal:1234/v1&quot;
+  .defaultBaseUrl &lt;- &quot;http://host.docker.internal:1234/v1&quot;
+} else{
+  current_base = &quot;localhost:1234/v1&quot;
+}</code></pre>
+</div>
+<div id="make-sure-you-can-connect-to-cytoscape" class="section level2">
+<h2>Make sure you can connect to Cytoscape</h2>
+<pre class="r"><code>    cytoscapePing (base.url = current_base)</code></pre>
+<pre><code>## You are connected to Cytoscape!</code></pre>
+<pre class="r"><code>    cytoscapeVersionInfo (base.url = current_base)</code></pre>
+<pre><code>##       apiVersion cytoscapeVersion 
+##             &quot;v1&quot;   &quot;3.10.0-BETA2&quot;</code></pre>
+</div>
+<div id="select-the-network-of-interest" class="section level2">
+<h2>Select the Network of Interest</h2>
+<p>The network name is specified in the parameters in this notebook.
+(You can also specify it directly in the below code block)</p>
+<pre class="r"><code>current_network &lt;- params$network_name
+
+RCy3::setCurrentNetwork(network=current_network, base.url = current_base)
+network_suid &lt;- RCy3::getNetworkSuid(current_network,base.url = current_base)</code></pre>
+</div>
+<div id="cluster-and-annotate-the-network" class="section level2">
+<h2>Cluster and Annotate the network</h2>
+<p>Use AutoAnnotate to annotate the network. After the notebook is
+annotated get the node and edge table which will contain the clusters
+that autoannotate used to define the annotations. By default,
+autoannotate uses MCL clustering to cluster the network so the below
+code gets the cluster definitions from the node attribute __mclCluster.
+If you choose to use a different clustering algorithm make sure to
+update the attribute used to define the clusters.</p>
+<p>Go through each cluster and get it associated label and associated
+pathways.</p>
+<p>This results in two dataframes, annotations2pathways and
+annotations_summary. Annotations2pathways is a mapping from annotation
+label_clusternubmer to pathway. (the annotation label isn’t used by
+itself as they are not necessarily unique and you can have two clusters
+with the same label. To make sure that they are unique we concatenate
+the cluster number to the label to create a unique identifier).</p>
+<p>annotations_summary is a table containing information about the
+different annoations. It contains the label_id, label, cluster number,
+number of pathways and a list of pathways associated with it.</p>
+<pre class="r"><code>## annotate the network 
+
+  #There is an issue with wordcloud not recognizing &quot;-&quot; as a delimiter
+  # use command to add it as a delimiter and also add &quot;pid&quot; as an excluded word
+  wordcloud_url &lt;- paste(&quot;wordcloud delimiter add value=\&quot;-\&quot; &quot;,&quot;network=SUID:&quot;,network_suid, sep=&quot;&quot;)
+  commandsGET(wordcloud_url,base.url = current_base)
+  
+  #add the set of words to ignore
+  words2ignore &lt;- c(&quot;pid&quot;,1:10)
+  responses &lt;- lapply(words2ignore,function(x){ wordcloud2_url &lt;- paste(&quot;wordcloud ignore add value=\&quot;&quot;,x, &quot;\&quot; &quot;,&quot;network=SUID:&quot;,network_suid, sep=&quot;&quot;);
+  commandsGET(wordcloud2_url,base.url = current_base)})
+  
+  #get the column from the nodetable and edge table
+  edgetable_colnames &lt;- getTableColumnNames(table=&quot;edge&quot;,  base.url = current_base)
+  
+  #get the correct attribute names
+  similarity_attrib &lt;- edgetable_colnames[grep(edgetable_colnames, pattern = &quot;similarity_coefficient&quot;)]
+  
+  #get the column from the nodetable and node table
+  nodetable_colnames &lt;- getTableColumnNames(table=&quot;node&quot;,  base.url = current_base)
+  
+  descr_attrib &lt;- nodetable_colnames[grep(nodetable_colnames, pattern = &quot;GS_DESCR&quot;)]
+  
+  #make sure it is set to the right network
+  setCurrentNetwork(network = getNetworkName(suid=as.numeric(network_suid),base.url = current_base),base.url = current_base)
+  
+  #annotate the network
+    curernt_name = NULL
+    aa_label_url &lt;- paste(&quot;autoannotate annotate-clusterBoosted labelColumn=&quot;, descr_attrib,&quot; maxWords=3 &quot;, sep=&quot;&quot;)
+    current_annotations &lt;-commandsGET(aa_label_url,base.url = current_base)
+  
+  default_node_table &lt;- getTableColumns(table= &quot;node&quot;,base.url = current_base)
+  default_edge_table &lt;- getTableColumns(table=&quot;edge&quot;,base.url = current_base)
+  
+  #use the clustering done with the annotations
+  clusternumbers &lt;- default_node_table$`__mclCluster`
+  
+  set_clusters &lt;- unique(clusternumbers)
+  set_clusters &lt;- set_clusters[which(set_clusters != 0)]
+  
+  annotations2pathways &lt;- data.frame(stringsAsFactors = FALSE)
+  annotations_summary &lt;- data.frame(stringsAsFactors = FALSE)
+  
+  #Go through each cluster  
+  for(i in 1:length(set_clusters)){
+    
+    current_cluster &lt;- set_clusters[i]
+    
+    gs_in_cluster &lt;- default_node_table$name[which(default_node_table$`__mclCluster` == current_cluster)]
+    
+    #for this cluster of gs get the gs descr to use in defining in autoannotate
+    gs_in_cluster_suid &lt;-  default_node_table$SUID[which(default_node_table$name %in% gs_in_cluster)]
+    suids_aa &lt;- paste(&quot;SUID&quot;, gs_in_cluster_suid,sep=&quot;:&quot;)
+    
+    #annotate the cluster
+    curernt_name = NULL
+    aa_label_url &lt;- paste(&quot;autoannotate label-clusterBoosted labelColumn=&quot;, descr_attrib,&quot; maxWords=3 nodeList=\&quot;&quot;,paste(suids_aa,collapse=&quot;,&quot;),&quot;\&quot;&quot;, sep=&quot;&quot;)
+    current_name &lt;-commandsGET(aa_label_url,base.url = current_base)
+    
+    #add cluster number to name - to get rid of issue with clusters with the same names
+    current_name_id &lt;- paste(current_name,current_cluster,sep=&quot;_&quot;)
+    
+    #if(is.null(current_name) || is.na(current_name)){
+    #current_name &lt;- gsub(&quot;\nFinished\n&quot;,&quot;&quot;,content(response, &quot;text&quot;, encoding = &quot;ISO-8859-1&quot;))
+    #  current_name = &quot;No annotation returned&quot;
+    #}
+    
+    annotations2pathways_current &lt;- data.frame( annotation_label=current_name_id, 
+                                               pathways = gs_in_cluster,stringsAsFactors = FALSE)
+    
+    annotations2pathways &lt;- rbind(annotations2pathways, annotations2pathways_current)
+    
+    annotations_summary &lt;- rbind(annotations_summary, c(current_cluster, current_name_id, current_name, length(gs_in_cluster), paste(gs_in_cluster,collapse = &quot;,&quot;) ))
+  }
+  
+  #add singletons
+  if(params$add_singletons){
+    singletons &lt;- which(is.na(clusternumbers) | (clusternumbers == 0))
+    for(i in 1:length(singletons)){
+      name_singleton &lt;- default_node_table$name[singletons[i]]
+    
+      annotations2pathways &lt;- rbind(annotations2pathways, c(paste(&quot;singleton&quot;,i, name_singleton,sep=&quot;_&quot;),name_singleton))
+    
+      annotations_summary &lt;- rbind(annotations_summary, c(NA, paste(&quot;singleton&quot;,i, name_singleton,sep=&quot;_&quot;), name_singleton, 1, name_singleton ))
+      
+    }
+  }
+ colnames(annotations_summary) &lt;- c(&quot;cluster_number&quot;,&quot;label_id&quot;, &quot;annotation_label&quot;,&quot;number_nodes_in_cluster&quot;, &quot;pathways_in_cluster&quot;)</code></pre>
+<p>Sort the annotation summary by the number of nodes in the cluster
+(similiar to how we see it in the autoannotate panel in Cytoscape.)</p>
+<pre class="r"><code>annotations_summary &lt;- annotations_summary[order(as.numeric(annotations_summary$number_nodes_in_cluster),decreasing = TRUE),]
+
+annotations_summary[1:5,1:4]</code></pre>
+<pre><code>##    cluster_number                           label_id
+## 9               1       apc proteasome degradation_1
+## 17              2         verapamil action pathway_2
+## 5               3       valve septum morphogenesis_3
+## 8               4 protein selenocysteine synthesis_4
+## 28              5                atp electron nadh_5
+##                    annotation_label number_nodes_in_cluster
+## 9        apc proteasome degradation                     102
+## 17         verapamil action pathway                      51
+## 5        valve septum morphogenesis                      36
+## 8  protein selenocysteine synthesis                      34
+## 28                atp electron nadh                      32</code></pre>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
