@@ -4,6 +4,11 @@ author: "Ruth Isserlin"
 date: "`r format(Sys.Date())`"
 output:
   html_document:
+    theme: paper
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
 params:
   is_docker: yes
   add_singletons: yes
